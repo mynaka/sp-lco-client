@@ -1,9 +1,9 @@
 <template>
-  <nav class="border-red-200 bg-white dark:bg-gray-100 dark:border-red-700">
+  <nav class="shadow bg-white">
     <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
       <a href="/" class="flex items-center space-x-3 rtl:space-x-reverse">
-        <img src="../assets/logo/uplb-logo.png" class="h-8" alt="UPLB Logo" />
-        <span class="self-center text-2xl font-semibold whitespace-nowrap" style="color: rgb(123, 17, 19);">Liver Cancer Ontologies</span>
+        <img src="../assets/logo/uplb-official-logo.png" class="h-8 md:h-10 lg:h-12" alt="UPLB Logo" />
+        <span class="self-center text-l md:text-xl lg:text-2xl font-semibold whitespace-nowrap">Liver Cancer Ontologies</span>
       </a>
       <button
         data-collapse-toggle="navbar-solid-bg"
@@ -13,7 +13,7 @@
         aria-expanded="false"
       >
         <span class="sr-only">Open main menu</span>
-        <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 14">
+        <svg class="w-5 h-5">
           <path
             stroke="currentColor"
             stroke-linecap="round"

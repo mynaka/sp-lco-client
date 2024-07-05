@@ -1,15 +1,18 @@
 <script setup lang="ts">
-  import { defineComponent } from 'vue';
+  import { computed } from 'vue';
+  import { useRoute } from 'vue-router';
   import Navbar from './components/Navbar.vue';
-  
+
+  const route = useRoute();
+  const showNavbar = computed(() => route.name == 'home');
 </script>
 
 <template>
-  <div>
-      <Navbar />
-      <router-view />
+  <div id="app">
+    <!-- Conditionally render the Navbar -->
+    <Navbar v-if="showNavbar" />
+    <router-view />
   </div>
 </template>
-
 <style scoped>
 </style>

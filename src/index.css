@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    .h-screen {
+        height: 100dvh;
+    }
+}
+
+html {
+    height: 100dvh;
+    background: rgb(243, 244, 246);
+}
+
+body {
+    padding: 0;
+    margin: 0;
+}

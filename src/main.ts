@@ -3,9 +3,22 @@ import './index.css'
 import App from './App.vue'
 import router from './router';
 import PrimeVue from 'primevue/config';
-import Select from 'primevue/select';
+import Lara from '@primevue/themes/lara';
+
+import 'primeicons/primeicons.css';
 
 const app = createApp(App).use(router);
-app.use(PrimeVue);
-app.component('Select', Select);
+app.use(PrimeVue, {
+    theme: {
+        preset: Lara,
+        options: {
+            prefix: 'p',
+            darkModeSelector: 'false',
+            cssLayer: {
+                name: 'primevue',
+                order: 'tailwind-base, primevue, tailwind-utilities'
+            }
+        }
+    }
+});
 app.mount('#app');

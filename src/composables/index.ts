@@ -1,0 +1,1 @@
+export { OntologyService } from './services/ontologies.ts';
