@@ -15,8 +15,6 @@ app.use(PrimeVue, {
             prefix: 'p',
             darkModeSelector: 'false',
             cssLayer: {
-                name: 'primevue',
-                order: 'tailwind-base, primevue, tailwind-utilities'
             }
         }
     }

@@ -17,14 +17,18 @@
             v-model="searchTerm" 
             optionLabel="name"
             inputId="term"
-            class="h-10"
+            class="h-10 min-w-10"
             :suggestions="filteredTermOptions" 
             @complete="search">
             <template #option="slotProps">
               <li @click="handleItemClick(slotProps.option)">
-                <div class="flex items-center">
-                  <div>{{ slotProps.option.name }} | </div>
-                  <div>| {{ getSourceFromCode(slotProps.option.code) }}</div>
+                <div class="flex items-center justify-between w-full">
+                  <div>{{ slotProps.option.name }}</div>
+                  <Button class="h-6 ml-2" 
+                  :label="getButtonLabel(slotProps.option)" 
+                  :severity="getButtonSeverity(slotProps.option)" 
+                  :style="{ 'pointer-events': 'none' }"
+                  rounded/>
                 </div>
               </li>
             </template>
@@ -34,6 +38,25 @@
         </div>
         <div class="bg-white h-[20px]"></div>
         <div class="flex justify-center items-center">OR</div>
+        <div class="flex justify-center items-center">Look for terms in the following Ontologies</div>
+        <div class="flex justify-center items-center">
+          <Button 
+            class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
+            severity="info"
+            outlined
+          >
+            <img src="../assets/logo/do-color-logo.png" alt="Button Icon" class="h-full w-auto object-contain"/>
+          </Button>
+        </div>
+        <div class="flex justify-center items-center">
+        <Button 
+            class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
+            severity="contrast"
+            outlined
+          >
+            <img src="../assets/logo/mondo-logo.png" alt="Button Icon" class="h-full w-auto object-contain"/>
+          </Button>
+        </div>
       </template>
     </Card>
     </div>
@@ -43,10 +66,13 @@
 <script setup lang="ts">
   import HomeLayout from '../../src/layouts/home.vue';
   import { ref, onMounted } from 'vue';
-  //import Button from 'primevue/button';
+
+  import Button from 'primevue/button';
   import Card from 'primevue/card';
   import AutoComplete from 'primevue/autocomplete';
   import Floatlabel from 'primevue/floatlabel';
+  import { FilterMatchMode, FilterService } from '@primevue/core/api';
+
   import {
     OntologyService
   } from "../composables";
@@ -59,13 +85,24 @@
   const filteredTermOptions = ref<SearchTerm[]>([]);
   const searchTerm = ref('');
 
-  function search(event: { query: { trim: () => { (): any; new(): any; length: any; }; toLowerCase: () => string; }; }) {
+  function search(event: { query: string; }) {
     setTimeout(() => {
-      if (!event.query.trim().length) {
+      const query = event.query.trim().toLowerCase();
+      if (!query.length) {
         filteredTermOptions.value = [...termOptions.value];
       } else {
-        filteredTermOptions.value = termOptions.value.filter((term) => {
-          return term.name.toLowerCase().startsWith(event.query.toLowerCase());
+        filteredTermOptions.value = FilterService.filter(termOptions.value, ['name'], query, FilterMatchMode.CONTAINS);
+
+        // sort them putting terms starting with the query before those only containing the query
+        filteredTermOptions.value.sort((a, b) => {
+          const startsWithQueryA = a.name.toLowerCase().startsWith(query) ? -1 : 0;
+          const startsWithQueryB = b.name.toLowerCase().startsWith(query) ? -1 : 0;
+          
+          if (startsWithQueryA !== startsWithQueryB) {
+            return startsWithQueryA - startsWithQueryB;
+          } else {
+            return a.name.toLowerCase().indexOf(query) - b.name.toLowerCase().indexOf(query);
+          }
         });
       }
     }, 250);
@@ -75,12 +112,18 @@
     console.log(option.code);
   }
 
-  function getSourceFromCode(code: string): string {
-    const index = code.indexOf(':');
+  function getButtonLabel(option: SearchTerm) {
+    const index = option.code.indexOf(':');
     if (index !== -1) {
-      return code.substring(0, index);
+      return option.code.substring(0, index);
     }
-    return code;
+    return option.code;
+  }
+
+  function getButtonSeverity(option: SearchTerm) {
+    return option.code.startsWith('DOID:')  
+      ? 'info' 
+      : 'secondary';
   }
 
   onMounted(() => {
@@ -93,7 +136,3 @@
       });
   });
 </script>
-
-<style scoped>
-</style>
-  
