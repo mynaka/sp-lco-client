@@ -43,6 +43,7 @@
           <Button 
             class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
             severity="info"
+            @click="redirectToOntology('doid')"
             outlined
           >
             <img src="../assets/logo/do-color-logo.png" alt="Button Icon" class="h-full w-auto object-contain"/>
@@ -52,6 +53,7 @@
         <Button 
             class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
             severity="contrast"
+            @click="redirectToOntology('mondo')"
             outlined
           >
             <img src="../assets/logo/mondo-logo.png" alt="Button Icon" class="h-full w-auto object-contain"/>
@@ -66,6 +68,7 @@
 <script setup lang="ts">
   import HomeLayout from '../../src/layouts/home.vue';
   import { ref, onMounted } from 'vue';
+  import { useRouter } from 'vue-router';
 
   import Button from 'primevue/button';
   import Card from 'primevue/card';
@@ -80,7 +83,7 @@
     SearchTerm
   } from "../interfaces";
 
-
+  const router = useRouter();
   const termOptions = ref<SearchTerm[]>([]);
   const filteredTermOptions = ref<SearchTerm[]>([]);
   const searchTerm = ref('');
@@ -109,9 +112,26 @@
   }
 
   function handleItemClick(option: SearchTerm) {
-    console.log(option.code);
+    const ontologyLabel = getButtonLabel(option).toLocaleLowerCase();
+    const code = option.code;
+
+    console.log(`Redirecting to /ontologies/${ontologyLabel}/classes?code=${code}`);
+
+    router.push({
+      path: `/ontologies/${ontologyLabel}/classes`,
+      query: { code: code }
+    });
   }
 
+const redirectToOntology = (ontology: string) => {
+  const url = `/ontologies/${ontology}/classes`;
+  router.push(url);
+};
+
+  /**
+   * @param option 
+   * @return source of option.code (option.code goes by format {source}:{id})
+   */
   function getButtonLabel(option: SearchTerm) {
     const index = option.code.indexOf(':');
     if (index !== -1) {
@@ -123,6 +143,8 @@
   function getButtonSeverity(option: SearchTerm) {
     return option.code.startsWith('DOID:')  
       ? 'info' 
+      : option.code.startsWith('DOID:')
+      ? 'contrast'
       : 'secondary';
   }
 
