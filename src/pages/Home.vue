@@ -143,7 +143,7 @@ const redirectToOntology = (ontology: string) => {
   function getButtonSeverity(option: SearchTerm) {
     return option.code.startsWith('DOID:')  
       ? 'info' 
-      : option.code.startsWith('DOID:')
+      : option.code.startsWith('MONDO:')
       ? 'contrast'
       : 'secondary';
   }
