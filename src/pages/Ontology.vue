@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-screen">
     <!-- Sidebar -->
-    <div class="hidden md:flex flex-auto md:w-1/4 flex-col">
+    <div class="hidden md:flex flex-auto md:w-1/4 flex-col overflow-y-auto">
       <div class="flex-auto flex flex-col justify-center items-center">
         <Card class="w-full h-full">
           <template #title>
@@ -35,14 +35,30 @@
     </div>
 
     <!-- Main content -->
-    <div class="flex w-full md:w-3/4 p-4">
+    <div class="flex w-full md:w-3/4 p-4 overflow-y-auto">
       <Card class="lg:w-2/4 sm:w-full mx-auto lg:my-auto lg:h-fit sm:h-full shadow-lg"
         v-if="selectedKey!=null">
         <template #title>
           {{ selectedNode.label }}
         </template>
         <template #content>
-          {{ selectedNode.data }}
+          <div class="p-4">
+            <div class="list-disc pl-4">
+              <div v-for="(values, key) in cardContents" :key="key">
+                <strong>{{ key }}</strong>
+                <div class="list-disc pl-4">
+                  <div v-if="values instanceof Array" v-for="value in values" :key="value">{{ value }}</div>
+                  <div v-else>{{ values }}</div>
+                </div>
+              </div>
+              <div>
+                <strong>subset_of</strong>
+                <div class="list-disc pl-4">
+                  <div v-for="value in selectedNodeParents">{{ value }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </template>
       </Card>
       <Card class="mx-auto my-auto h-fit shadow-lg"
@@ -51,13 +67,12 @@
           SELECT A TERM TO VIEW
         </template>
       </Card>
-      <!-- Your main content goes here -->
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
 import Card from 'primevue/card';
@@ -65,7 +80,6 @@ import Tree from 'primevue/tree';
 import ProgressSpinner from 'primevue/progressspinner';
 
 import { OntologyService } from "../composables"; // Make sure this path is correct
-import { queryObjects } from 'v8';
 
 const nodes = ref([]);
 const route = useRoute();
@@ -76,6 +90,10 @@ const ontology = ref(route.params.ontology.toUpperCase());
 const selectedKey = ref();
 const expandedKeys = ref({});
 const selectedNode = ref();
+const selectedNodeParents = ref();
+const cardContents = ref();
+
+const isSearching = ref(true);
 
 console.log(ontology.value);
 
@@ -84,7 +102,12 @@ if (route.query.code != null) {
 }
 
 const onNodeSelect = (node: any) => {
+  isSearching.value = false;
   selectedNode.value = node;
+  cardContents.value = parsedElements.value;
+  query.value = node.key;
+  isLoadingTree.value = true;
+  loadOntologies();
 };
 
 const collectAncestors = (key: string, nodes: any[], ancestors: any[] = []): any[] | null => {
@@ -103,6 +126,11 @@ const collectAncestors = (key: string, nodes: any[], ancestors: any[] = []): any
 };
 
 const navigateToNode = (key: string) => {
+  // close all expandedKeys
+  for (const key in expandedKeys.value) {
+    expandedKeys.value[key] = false;
+  }
+
   const paths = nodes.value.map(node => collectAncestors(key, [node])).filter(path => path !== null);
   if (paths.length > 0) {
     selectedKey.value = { [key]: true };
@@ -116,8 +144,7 @@ const navigateToNode = (key: string) => {
   }
 };
 
-
-onMounted(() => {
+const loadOntologies = () => {
   OntologyService.getTermsDatabaseTree(ontology.value).then(async (data) => {
     nodes.value = data.data.entries;
     let foundNode = false;
@@ -128,7 +155,7 @@ onMounted(() => {
         //if node was found
         if (node.key == query.value) {
           foundNode = true;
-          onNodeSelect(node);
+          if (isSearching.value) onNodeSelect(node);
           break;
         }
         if (node.children && node.children.length > 0) {
@@ -154,5 +181,19 @@ onMounted(() => {
   }).catch((error) => {
     console.error("Error fetching data:", error);
   });
+}
+
+const parsedElements = computed(() => {
+  selectedNodeParents.value = selectedNode.value.data.parents;
+  try {
+    return JSON.parse(selectedNode.value.data.elements);
+  } catch (error) {
+    console.error('Error parsing JSON:', error);
+    return {};
+  }
+});
+
+onMounted(() => {
+  loadOntologies();
 });
 </script>
