@@ -40,21 +40,49 @@
         v-if="selectedKey!=null">
         <template #title>
           {{ selectedNode.label }}
+          <Button class="ml-2" 
+            @click="downloadJson"
+            label="Download JSON" 
+            severity="info" 
+            rounded/>
         </template>
         <template #content>
           <div class="p-4">
             <div class="list-disc pl-4">
               <div v-for="(values, key) in cardContents" :key="key">
-                <strong>{{ key }}</strong>
-                <div class="list-disc pl-4">
-                  <div v-if="values instanceof Array" v-for="value in values" :key="value">{{ value }}</div>
-                  <div v-else>{{ values }}</div>
+                <div v-if="values && (values instanceof Array ? values.length > 0 : true)">
+                  <strong>{{ key }}</strong>
+                  <div class="list-disc pl-4">
+                    <div v-if="values instanceof Array" v-for="value in values" :key="value">
+                      <div v-if="isValidSubset(value)"
+                        v-tooltip="value.definition"
+                        class="relative text-blue-600 cursor-pointer inline-block">
+                        {{ value.subset }}
+                      </div>
+                      <div v-else class="inline-block">{{ value }}</div>
+                    </div>
+                    <div v-else class="inline-block">{{ values }}</div>
+                  </div>
                 </div>
               </div>
-              <div>
+              <div v-if="selectedNodeParents.length > 0">
                 <strong>subset_of</strong>
                 <div class="list-disc pl-4">
-                  <div v-for="value in selectedNodeParents">{{ value }}</div>
+                  <div v-for="(value) in selectedNodeParents">
+                    <a :href="`/ontologies/doid/classes?code=${value.code}`" class="text-blue-500 underline">
+                      {{ value.name }}
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <div v-if="selectedNodeEquivalents.length > 0">
+                <strong>similar_to</strong>
+                <div class="list-disc pl-4">
+                  <div v-for="(value) in selectedNodeEquivalents">
+                    <a :href="`/ontologies/${value.database}/classes?code=${value.code}`" class="text-blue-500 underline">
+                      {{ value.name }}
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -75,6 +103,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 
+import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Tree from 'primevue/tree';
 import ProgressSpinner from 'primevue/progressspinner';
@@ -91,6 +120,7 @@ const selectedKey = ref();
 const expandedKeys = ref({});
 const selectedNode = ref();
 const selectedNodeParents = ref();
+const selectedNodeEquivalents = ref();
 const cardContents = ref();
 
 const isSearching = ref(true);
@@ -106,8 +136,6 @@ const onNodeSelect = (node: any) => {
   selectedNode.value = node;
   cardContents.value = parsedElements.value;
   query.value = node.key;
-  isLoadingTree.value = true;
-  loadOntologies();
 };
 
 const collectAncestors = (key: string, nodes: any[], ancestors: any[] = []): any[] | null => {
@@ -185,6 +213,7 @@ const loadOntologies = () => {
 
 const parsedElements = computed(() => {
   selectedNodeParents.value = selectedNode.value.data.parents;
+  selectedNodeEquivalents.value = selectedNode.value.data.equivalents;
   try {
     return JSON.parse(selectedNode.value.data.elements);
   } catch (error) {
@@ -192,6 +221,59 @@ const parsedElements = computed(() => {
     return {};
   }
 });
+
+const downloadJson = () => {
+  // Parse `elements` string into a JSON object if it is a string
+  let elementsObj;
+  try {
+    elementsObj = JSON.parse(selectedNode.value?.data?.elements || '{}');
+  } catch (error) {
+    console.error('Error parsing elements:', error);
+    elementsObj = {}; // Default to an empty object if parsing fails
+  }
+
+  // Create a copy of selectedNode without the `children` field
+  const { data: { children, parents = [], equivalents = [], ...restData }, ...rest } = selectedNode.value || {};
+
+  // Prepare associated terms object conditionally
+  const associatedTerms: { subset_of?: string[], equivalent_to?: string[] } = {};
+
+  if (parents.length > 0) {
+    associatedTerms.subset_of = parents.map((parent: any) => parent.code || '');
+  }
+
+  if (equivalents.length > 0) {
+    associatedTerms.equivalent_to = equivalents.map((eq: any) => eq.code || '');
+  }
+
+  // Construct the JSON object to download
+  const jsonToDownload = {
+    name: selectedNode.value?.label || 'Unnamed Node',
+    term_code: selectedNode.value?.key || 'Unknown Code',
+    ...restData,
+    elements: elementsObj,
+    ...(Object.keys(associatedTerms).length > 0 ? { associated_terms: associatedTerms } : {})
+  };
+
+  const dataStr: string = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonToDownload, null, 2));
+  const downloadAnchorNode: HTMLAnchorElement = document.createElement('a');
+  downloadAnchorNode.setAttribute("href", dataStr);
+  downloadAnchorNode.setAttribute("download", `${ontology.value}_${selectedNode.value?.label || 'data'}.json`);
+  document.body.appendChild(downloadAnchorNode); // Required for Firefox
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
+};
+
+const isValidSubset = (val: any) => {
+  if (val) {
+    return (
+      typeof val.subset === 'string' &&
+      typeof val.definition === 'string'
+    );
+  }
+
+  return false;
+};
 
 onMounted(() => {
   loadOntologies();
