@@ -1,4 +1,7 @@
 <template>
+  <div class="fixed w-full">
+    <Navbar />
+  </div>
   <HomeLayout>
     <div class="min-h-screen flex items-center justify-center">
       <Card class="flex flex-col justify-center lg:w-2/4 sm:w-full mx-auto lg:my-auto lg:h-fit sm:h-full border-white p-8 shadow-lg">
@@ -82,6 +85,7 @@
   import {
     SearchTerm
   } from "../interfaces";
+  import Navbar from '../components/Navbar.vue';
 
   const router = useRouter();
   const termOptions = ref<SearchTerm[]>([]);

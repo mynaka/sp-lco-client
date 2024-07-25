@@ -12,7 +12,7 @@ export const AuthenticationService = {
       formData.append('username', username);
       formData.append('password', password);
   
-      return await axios.post(`${SERVER_DOMAIN}/api/login`, formData, {
+      return await axios.post(`${SERVER_DOMAIN}/login`, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }

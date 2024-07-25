@@ -109,6 +109,7 @@ import Tree from 'primevue/tree';
 import ProgressSpinner from 'primevue/progressspinner';
 
 import { OntologyService } from "../composables"; // Make sure this path is correct
+import Navbar from '../components/Navbar.vue';
 
 const nodes = ref([]);
 const route = useRoute();
