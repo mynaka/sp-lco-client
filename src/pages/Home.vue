@@ -2,74 +2,71 @@
   <div class="fixed w-full">
     <Navbar />
   </div>
-  <HomeLayout>
-    <div class="min-h-screen flex items-center justify-center">
-      <Card class="flex flex-col justify-center lg:w-2/4 sm:w-full mx-auto lg:my-auto lg:h-fit sm:h-full border-white p-8 shadow-lg">
-      <template #title>
-        <div class="flex justify-center">
-          <img src="../assets/logo/uplb-official-logo.png" width="200" alt="UPLB Logo" />
-        </div>
-        <div class="text-center sm:text-2xl text-sm mt-2">
-          Welcome to the Liver Cancer Ontology Lookup Service
-        </div>
-      </template>
-      <template #content>
-        <div class="flex justify-center items-center">
-          <Floatlabel class="mt-8 mx-auto">
-          <AutoComplete 
-            v-model="searchTerm" 
-            optionLabel="name"
-            inputId="term"
-            class="h-10 min-w-10"
-            :suggestions="filteredTermOptions" 
-            @complete="search">
-            <template #option="slotProps">
-              <li @click="handleItemClick(slotProps.option)">
-                <div class="flex items-center justify-between w-full">
-                  <div>{{ slotProps.option.name }}</div>
-                  <Button class="h-6 ml-2" 
-                  :label="getButtonLabel(slotProps.option)" 
-                  :severity="getButtonSeverity(slotProps.option)" 
-                  :style="{ 'pointer-events': 'none' }"
-                  rounded/>
-                </div>
-              </li>
-            </template>
-          </AutoComplete>
-          <label for="term">Search for a Term</label>
-          </Floatlabel>
-        </div>
-        <div class="bg-white h-[20px]"></div>
-        <div class="flex justify-center items-center">OR</div>
-        <div class="flex justify-center items-center">Look for terms in the following Ontologies</div>
-        <div class="flex justify-center items-center">
-          <Button 
-            class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
-            severity="info"
-            @click="redirectToOntology('doid')"
-            outlined
-          >
-            <img src="../assets/logo/do-color-logo.png" alt="Button Icon" class="h-full w-auto object-contain"/>
-          </Button>
-        </div>
-        <div class="flex justify-center items-center">
+  <div class="min-h-screen flex items-center justify-center">
+    <Card class="flex flex-col justify-center lg:w-2/4 sm:w-full mx-auto lg:my-auto lg:h-fit sm:h-full border-white p-8 shadow-lg">
+    <template #title>
+      <div class="flex justify-center">
+        <img src="../assets/logo/uplb-official-logo.png" width="200" alt="UPLB Logo" />
+      </div>
+      <div class="text-center sm:text-2xl text-sm mt-2">
+        Welcome to the Liver Cancer Ontology Lookup Service
+      </div>
+    </template>
+    <template #content>
+      <div class="flex justify-center items-center">
+        <Floatlabel class="mt-8 mx-auto">
+        <AutoComplete 
+          v-model="searchTerm" 
+          optionLabel="name"
+          inputId="term"
+          class="h-10 min-w-10"
+          :suggestions="filteredTermOptions" 
+          @complete="search">
+          <template #option="slotProps">
+            <li @click="handleItemClick(slotProps.option)">
+              <div class="flex items-center justify-between w-full">
+                <div>{{ slotProps.option.name }}</div>
+                <Button class="h-6 ml-2" 
+                :label="getButtonLabel(slotProps.option)" 
+                :severity="getButtonSeverity(slotProps.option)" 
+                :style="{ 'pointer-events': 'none' }"
+                rounded/>
+              </div>
+            </li>
+          </template>
+        </AutoComplete>
+        <label for="term">Search for a Term</label>
+        </Floatlabel>
+      </div>
+      <div class="bg-white h-[20px]"></div>
+      <div class="flex justify-center items-center">OR</div>
+      <div class="flex justify-center items-center">Look for terms in the following Ontologies</div>
+      <div class="flex justify-center items-center">
         <Button 
-            class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
-            severity="contrast"
-            @click="redirectToOntology('mondo')"
-            outlined
-          >
-            <img src="../assets/logo/mondo-logo.png" alt="Button Icon" class="h-full w-auto object-contain"/>
-          </Button>
-        </div>
-      </template>
-    </Card>
-    </div>
-  </HomeLayout>
+          class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
+          severity="info"
+          @click="redirectToOntology('doid')"
+          outlined
+        >
+          <img src="../assets/logo/do-color-logo.png" alt="Button Icon" class="h-full w-auto object-contain"/>
+        </Button>
+      </div>
+      <div class="flex justify-center items-center">
+      <Button 
+          class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
+          severity="contrast"
+          @click="redirectToOntology('mondo')"
+          outlined
+        >
+          <img src="../assets/logo/mondo-logo.png" alt="Button Icon" class="h-full w-auto object-contain"/>
+        </Button>
+      </div>
+    </template>
+  </Card>
+  </div>
 </template>
 
 <script setup lang="ts">
-  import HomeLayout from '../../src/layouts/home.vue';
   import { ref, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
 
