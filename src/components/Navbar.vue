@@ -42,7 +42,7 @@
           <div v-else>
             <Button
               :label="userLogged"
-              class="h-8 text-white"
+              class="h-8 text-white user-button"
               @click="profileToggle"
             />
             <Popover ref="profileToggleRef">
@@ -73,12 +73,15 @@
 
 <script lang="ts">
 import { computed, defineComponent, ref } from 'vue';
+import { useToast } from 'primevue/usetoast';
+
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
 import FloatLabel from 'primevue/floatlabel';
 import Password from 'primevue/password';
 import Popover from 'primevue/popover';
 import Toast from 'primevue/toast';
+
 import { useUserStore } from '../stores/userStore';
 
 export default defineComponent({
@@ -96,10 +99,11 @@ export default defineComponent({
     const username = ref<string>('');
     const password = ref<string>('');
     const userStore = useUserStore();
+    const toast = useToast();
     const profileToggleRef = ref<any>(null);
 
     const isAuth = computed(() => userStore.isAuthenticated);
-    const userLogged = ref();
+    const userLogged = computed(() => userStore.getUsername);
     const token = ref();
     const loading = ref(false);
 
@@ -115,9 +119,20 @@ export default defineComponent({
       loading.value = true;
       const login = await userStore.login(username.value, password.value);
       if (login != "fail"){
-        console.log('Login successful');
+        toast.add({ 
+          severity: 'success', 
+          summary: 'Login Successful', 
+          detail: 'You have successfully logged in', 
+          life: 3000 
+        });
         token.value = userStore.token;
-        userLogged.value = userStore.getUsername;
+      } else {
+        toast.add({ 
+          severity: 'error', 
+          summary: 'Login Failed', 
+          detail: 'Invalid username or password', 
+          life: 3000 
+        });
       }
       loading.value = false;
     };
@@ -135,12 +150,12 @@ export default defineComponent({
       password,
       isAuth,
       userLogged,
-      toggle,
       handleSubmit,
       loading,
       logout,
       profileToggle,
-      profileToggleRef
+      profileToggleRef,
+      toggle
     };
   }
 });
@@ -148,14 +163,26 @@ export default defineComponent({
 
 <style scoped>
 .login-button {
-  background-color: maroon !important;
-  border: 2px solid maroon !important;
+  background-color: rgb(133, 0, 55) !important;
+  border: 2px solid rgb(167, 69, 110) !important;
   transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 
 .login-button:hover {
   background-color: white !important;
-  color: maroon !important;
-  border-color: maroon !important;
+  color: rgb(133, 0, 55) !important;
+  border-color: rgb(133, 0, 55) !important;
+}
+
+.user-button {
+  background-color: rgb(13, 96, 59) !important;
+  border: 2px solid rgb(13, 96, 59) !important;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.user-button:hover {
+  background-color: white !important;
+  color: rgb(13, 96, 59) !important;
+  border-color: rgb(13, 96, 59) !important;
 }
 </style>
