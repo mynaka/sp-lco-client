@@ -9,7 +9,7 @@
         <img src="../assets/logo/uplb-official-logo.png" width="200" alt="UPLB Logo" />
       </div>
       <div class="text-center sm:text-2xl text-sm mt-2">
-        Welcome to the Liver Cancer Ontology Lookup Service
+        Liver Cancer Ontology Lookup Service
       </div>
     </template>
     <template #content>

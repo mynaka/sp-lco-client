@@ -16,9 +16,9 @@
               @click="toggle"
             />
             <Popover ref="loginToggle">
-              <div class="flex flex-col gap-4">
+              <form class="flex flex-col gap-4">
                 <FloatLabel class="mt-4 w-full">
-                  <InputText id="username" v-model="username" />
+                  <InputText id="username" v-model="username" autocomplete="username" />
                   <label for="username">Username</label>
                 </FloatLabel>
                 <FloatLabel class="mt-4">
@@ -29,14 +29,14 @@
                     toggleMask
                   />
                   <label for="password">Password</label>
-                </FloatLabel class="mt-4">
+                </FloatLabel>
                 <Button
                   label="Submit"
                   class="mt-2 h-8 text-white login-button"
                   :loading="loading"
                   @click="handleSubmit"
                 />
-                </div>
+              </form>
             </Popover>
           </div>
           <div v-else>
@@ -53,6 +53,7 @@
                   label="Add Class"
                   severity="secondary"
                   text
+                  @click="addClassIsVisible=true"
                 />
                 <!-- LOGOUT -->
                 <Button
@@ -68,15 +69,33 @@
         </ul>
       </div>
     </div>
+    <!-- DIALOG -->
+    <Dialog v-model:visible="addClassIsVisible" modal header="Add Class" :style="{ width: '25rem' }">
+      <div v-if="isUploadVisible">
+        <span class="text-surface-500 dark:text-surface-400 block mb-8">Upload a file to add a class.</span>
+        <FileUpload 
+        mode="basic" 
+        name="demo[]" 
+        customUpload
+        accept="application/json, .obo" 
+        :maxFileSize="1000000" 
+        @uploader="onUpload"
+        :auto="true" 
+        chooseLabel="Browse" />
+      </div>
+    </Dialog>
   </nav>
 </template>
 
 <script lang="ts">
 import { computed, defineComponent, ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
+import { OntologyService } from '../composables';
 
 import Button from 'primevue/button';
+import Dialog from 'primevue/dialog';
 import InputText from 'primevue/inputtext';
+import FileUpload from 'primevue/fileupload';
 import FloatLabel from 'primevue/floatlabel';
 import Password from 'primevue/password';
 import Popover from 'primevue/popover';
@@ -88,6 +107,8 @@ export default defineComponent({
   name: 'Navbar',
   components: {
     Button,
+    Dialog,
+    FileUpload,
     FloatLabel,
     InputText,
     Password,
@@ -101,6 +122,8 @@ export default defineComponent({
     const userStore = useUserStore();
     const toast = useToast();
     const profileToggleRef = ref<any>(null);
+    const addClassIsVisible = ref<boolean>(false);
+    const isUploadVisible = ref<boolean>(true);
 
     const isAuth = computed(() => userStore.isAuthenticated);
     const userLogged = computed(() => userStore.getUsername);
@@ -114,6 +137,25 @@ export default defineComponent({
     const profileToggle = (event: any) => {
       profileToggleRef.value.toggle(event);
     }
+
+    const onUpload = async (event: any): Promise<any> => {
+      const file = event.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await OntologyService.getJSONFromFileInput(formData);
+        console.log(response.data.entry);
+      } catch (error) {
+        console.error('Upload failed:', error);
+        throw error;
+      } finally {
+        //isUploadVisible.value = false;
+        /**TODO
+         * Make form for adding class visible
+         */
+      }
+    };
 
     const handleSubmit = async () => {
       loading.value = true;
@@ -138,9 +180,6 @@ export default defineComponent({
     };
 
     const logout = async () => {
-      // Implement your logout logic here
-      console.log('Logging out...');
-      // Example:
       userStore.logout();
     };
 
@@ -155,7 +194,10 @@ export default defineComponent({
       logout,
       profileToggle,
       profileToggleRef,
-      toggle
+      addClassIsVisible,
+      toggle,
+      onUpload,
+      isUploadVisible
     };
   }
 });

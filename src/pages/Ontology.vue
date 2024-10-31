@@ -17,7 +17,7 @@
               <ProgressSpinner />
             </template>
             <template v-else>
-              <Tree
+              <!-- <Tree
                 v-model:selectionKeys="selectedKey"
                 :expandedKeys="expandedKeys"
                 :filter="true"
@@ -27,7 +27,13 @@
                 :metaKeySelection="false"
                 @nodeSelect="onNodeSelect"
                 class="w-full h-full"
-              />
+              /> -->
+              <Tree :value="nodes"
+                @node-expand="onNodeExpand"
+                @nodeSelect="onNodeSelect"
+                selectionMode="single"
+                loadingMode="icon" 
+                class="w-full md:w-[30rem]"/>
             </template>
           </template>
           </Card>
@@ -47,46 +53,6 @@
             rounded/>
         </template>
         <template #content>
-          <div class="p-4">
-            <div class="list-disc pl-4">
-              <div v-for="(values, key) in cardContents" :key="key">
-                <div v-if="values && (values instanceof Array ? values.length > 0 : true)">
-                  <strong>{{ key }}</strong>
-                  <div class="list-disc pl-4">
-                    <div v-if="values instanceof Array" v-for="value in values" :key="value">
-                      <div v-if="isValidSubset(value)"
-                        v-tooltip="value.definition"
-                        class="relative text-blue-600 cursor-pointer inline-block">
-                        {{ value.subset }}
-                      </div>
-                      <div v-else class="inline-block">{{ value }}</div>
-                    </div>
-                    <div v-else class="inline-block">{{ values }}</div>
-                  </div>
-                </div>
-              </div>
-              <div v-if="selectedNodeParents.length > 0">
-                <strong>subset_of</strong>
-                <div class="list-disc pl-4">
-                  <div v-for="(value) in selectedNodeParents">
-                    <a :href="`/ontologies/doid/classes?code=${value.code}`" class="text-blue-500 underline">
-                      {{ value.name }}
-                    </a>
-                  </div>
-                </div>
-              </div>
-              <div v-if="selectedNodeEquivalents.length > 0">
-                <strong>similar_to</strong>
-                <div class="list-disc pl-4">
-                  <div v-for="(value) in selectedNodeEquivalents">
-                    <a :href="`/ontologies/${value.database}/classes?code=${value.code}`" class="text-blue-500 underline">
-                      {{ value.name }}
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </template>
       </Card>
       <Card class="mx-auto my-auto h-fit shadow-lg"
@@ -102,27 +68,25 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
+import {
+  Node
+} from "../interfaces";
 
 import Button from 'primevue/button';
 import Card from 'primevue/card';
 import Tree from 'primevue/tree';
 import ProgressSpinner from 'primevue/progressspinner';
 
-import { OntologyService } from "../composables"; // Make sure this path is correct
-import Navbar from '../components/Navbar.vue';
+import { OntologyService } from "../composables";
 
-const nodes = ref([]);
+const nodes = ref<Node[]>([]);
 const route = useRoute();
 const query = ref();
 const isLoadingTree = ref(true);
-const ontology = ref(route.params.ontology.toUpperCase());
+const ontology = ref((route.params.ontology as string).toUpperCase());
 
 const selectedKey = ref();
-const expandedKeys = ref({});
 const selectedNode = ref();
-const selectedNodeParents = ref();
-const selectedNodeEquivalents = ref();
-const cardContents = ref();
 
 const isSearching = ref(true);
 
@@ -133,95 +97,60 @@ if (route.query.code != null) {
 }
 
 const onNodeSelect = (node: any) => {
-  isSearching.value = false;
-  selectedNode.value = node;
-  cardContents.value = parsedElements.value;
-  query.value = node.key;
+  // isSearching.value = false;
+  // selectedNode.value = node;
+  // cardContents.value = parsedElements.value;
+  // query.value = node.key;
+  console.log(node);
 };
 
-const collectAncestors = (key: string, nodes: any[], ancestors: any[] = []): any[] | null => {
-  for (const node of nodes) {
-    if (node.key === key) {
-      return [...ancestors, ...(node.data.parents || [])];
-    }
-    if (node.children && node.children.length > 0) {
-      const result = collectAncestors(key, node.children, [...ancestors, node.key]);
-      if (result) {
-        return result;
-      }
-    }
-  }
-  return null;
-};
-
-const navigateToNode = (key: string) => {
-  // close all expandedKeys
-  for (const key in expandedKeys.value) {
-    expandedKeys.value[key] = false;
-  }
-
-  const paths = nodes.value.map(node => collectAncestors(key, [node])).filter(path => path !== null);
-  if (paths.length > 0) {
-    selectedKey.value = { [key]: true };
-    paths.forEach(pathToNode => {
-      pathToNode!.forEach(parentKey => {
-        expandedKeys.value[parentKey] = true;
-      });
-    });
-  } else {
-    console.log('Node not found');
-  }
-};
-
-const loadOntologies = () => {
-  OntologyService.getTermsDatabaseTree(ontology.value).then(async (data) => {
-    nodes.value = data.data.entries;
-    let foundNode = false;
-    if (query.value != null) {
-      const stack = [...nodes.value];
-      while (stack.length > 0) {
-        const node = stack.pop();
-        //if node was found
-        if (node.key == query.value) {
-          foundNode = true;
-          if (isSearching.value) onNodeSelect(node);
-          break;
-        }
-        if (node.children && node.children.length > 0) {
-          stack.push(...node.children);
-        }
-      }
-
-      if (foundNode) {
-        console.log('Found node');
-      } else {
-        console.log('Node not found with key:', query.value);
-        // Handle no node found scenario
-      }
-    }
-
-    await nextTick();
-    isLoadingTree.value = false;
-
-    if (foundNode) {
-      navigateToNode(query.value);
-      selectedKey.value = { [query.value]: true };
-    }
-  }).catch((error) => {
-    console.error("Error fetching data:", error);
-  });
-}
-
-const parsedElements = computed(() => {
-  selectedNodeParents.value = selectedNode.value.data.parents;
-  selectedNodeEquivalents.value = selectedNode.value.data.equivalents;
+/**
+ * Get the root nodes of the ontology specified in the endpoint params
+ */
+const loadOntologies = async (): Promise<void> => {
   try {
-    return JSON.parse(selectedNode.value.data.elements);
+    const rootResponse = await OntologyService.getRootDatabaseTree(ontology.value);
+    nodes.value = rootResponse.data.entries;
   } catch (error) {
-    console.error('Error parsing JSON:', error);
-    return {};
+    console.error("Error fetching data:", error);
+  } finally {
+    nodes.value.map((node) => (
+      node.loading = false,
+      node.isLoaded = false
+    ));
+    isLoadingTree.value = false;
   }
-});
+};
+
+
+/**
+ * Get the children of the node from the backend if node is not expanded already
+ * @param node node to be expanded
+ */
+const onNodeExpand = (node: Node): void => {
+  if (!node.isLoaded){
+    const children = ref<Node[]>([]);
+    if (!node.leaf) node.loading = true;
+
+    setTimeout(() => {
+      let notation = node.data.notation;
+      
+      OntologyService.getNodeChildren(notation).then(async (data) => {
+        children.value = data.data.entries;
+
+        node.children = children.value;
+        node.children.forEach((child) => {
+          child.loading = false;
+        });
+        node.loading = false;
+        node.isLoaded = true;
+      }).catch((error) => {
+        console.error("Error fetching data:", error);
+        node.loading = false;
+      });
+    }, 500);
+  }
+}
 
 const downloadJson = () => {
   // Parse `elements` string into a JSON object if it is a string
@@ -265,18 +194,8 @@ const downloadJson = () => {
   downloadAnchorNode.remove();
 };
 
-const isValidSubset = (val: any) => {
-  if (val) {
-    return (
-      typeof val.subset === 'string' &&
-      typeof val.definition === 'string'
-    );
-  }
-
-  return false;
-};
-
 onMounted(() => {
+  isLoadingTree.value = true;
   loadOntologies();
 });
 </script>
