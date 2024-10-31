@@ -17,17 +17,6 @@
               <ProgressSpinner />
             </template>
             <template v-else>
-              <!-- <Tree
-                v-model:selectionKeys="selectedKey"
-                :expandedKeys="expandedKeys"
-                :filter="true"
-                filterMode="strict"
-                :value="nodes"
-                selectionMode="single"
-                :metaKeySelection="false"
-                @nodeSelect="onNodeSelect"
-                class="w-full h-full"
-              /> -->
               <Tree :value="nodes"
                 @node-expand="onNodeExpand"
                 @nodeSelect="onNodeSelect"
@@ -43,20 +32,47 @@
     <!-- Main content -->
     <div class="flex w-full md:w-3/4 p-4 overflow-y-auto">
       <Card class="lg:w-2/4 sm:w-full mx-auto lg:my-auto lg:h-fit sm:h-full shadow-lg"
-        v-if="selectedKey!=null">
+        v-if="selectedNode!=null">
         <template #title>
           {{ selectedNode.label }}
-          <Button class="ml-2" 
-            @click="downloadJson"
-            label="Download JSON" 
+          <Button class="ml-2"
+            v-if="selectedNode.data.sample"
+            @click="downloadCSV"
+            label="Download Sample CSV" 
             severity="info" 
             rounded/>
         </template>
         <template #content>
+          <div v-if="selectedNode && selectedNode.data">
+          <h3>{{ selectedNode.label }}</h3>
+          <ul>
+            <li v-for="(value, key) in selectedNode.data" :key="key">
+              <strong v-if="key != 'sample'">{{ key }}:</strong> 
+              <template v-if="isValidJsonString(value) && key != 'sample'">
+                <table border="1" class="table-auto w-full text-left">
+                  <thead>
+                    <tr>
+                      <th class="px-4 py-2">Field</th>
+                      <th class="px-4 py-2">Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in convertToDataTableFormat(value)" :key="item.field">
+                      <td class="border px-4 py-2">{{ item.field }}</td>
+                      <td class="border px-4 py-2">{{ item.type }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </template>
+              <template v-else-if="key !== 'sample'" >
+                {{ value }}
+              </template>
+            </li>
+          </ul>
+        </div>
         </template>
       </Card>
-      <Card class="mx-auto my-auto h-fit shadow-lg"
-        v-else>
+      <Card class="mx-auto my-auto h-fit shadow-lg" v-else>
         <template #title class="justify-center items-center">
           SELECT A TERM TO VIEW
         </template>
@@ -66,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import {
   Node
@@ -88,9 +104,6 @@ const ontology = ref((route.params.ontology as string).toUpperCase());
 const selectedKey = ref();
 const selectedNode = ref();
 
-const isSearching = ref(true);
-
-console.log(ontology.value);
 
 if (route.query.code != null) {
   query.value = route.query.code;
@@ -98,10 +111,9 @@ if (route.query.code != null) {
 
 const onNodeSelect = (node: any) => {
   // isSearching.value = false;
-  // selectedNode.value = node;
+  selectedNode.value = node;
   // cardContents.value = parsedElements.value;
   // query.value = node.key;
-  console.log(node);
 };
 
 /**
@@ -133,7 +145,7 @@ const onNodeExpand = (node: Node): void => {
     if (!node.leaf) node.loading = true;
 
     setTimeout(() => {
-      let notation = node.data.notation;
+      let notation = node.data.notation ?? node.data.identifier;
       
       OntologyService.getNodeChildren(notation).then(async (data) => {
         children.value = data.data.entries;
@@ -152,47 +164,72 @@ const onNodeExpand = (node: Node): void => {
   }
 }
 
-const downloadJson = () => {
-  // Parse `elements` string into a JSON object if it is a string
-  let elementsObj;
+const downloadCSV = () => {
   try {
-    elementsObj = JSON.parse(selectedNode.value?.data?.elements || '{}');
+    // Get sample data from selectedNode
+    const sampleData = JSON.parse(selectedNode.value.data.sample);
+    
+    // Prepare the CSV header
+    const headers = Object.keys(sampleData);
+    const csvRows = [];
+    
+    // Add the header row to CSV
+    csvRows.push(headers.join(','));
+
+    // Get the maximum number of rows in any of the arrays
+    const maxRows = Math.max(...Object.values(sampleData).map(arr => arr.length));
+
+    // Create rows for CSV
+    for (let i = 0; i < maxRows; i++) {
+      const row = headers.map(header => {
+        // Get the value for each header, or an empty string if undefined
+        return sampleData[header][i] !== undefined ? sampleData[header][i] : '';
+      });
+      csvRows.push(row.join(','));
+    }
+
+    // Create a CSV string
+    const csvString = csvRows.join('\n');
+
+    // Open the CSV in a new tab
+    const csvBlob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const csvUrl = URL.createObjectURL(csvBlob);
+    const a = document.createElement('a');
+    a.setAttribute('href', csvUrl);
+    a.setAttribute('target', '_blank');
+    a.setAttribute('download', 'sample_data.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   } catch (error) {
-    console.error('Error parsing elements:', error);
-    elementsObj = {}; // Default to an empty object if parsing fails
+    console.error('Error parsing or converting to CSV:', error);
   }
-
-  // Create a copy of selectedNode without the `children` field
-  const { data: { children, parents = [], equivalents = [], ...restData }, ...rest } = selectedNode.value || {};
-
-  // Prepare associated terms object conditionally
-  const associatedTerms: { subset_of?: string[], equivalent_to?: string[] } = {};
-
-  if (parents.length > 0) {
-    associatedTerms.subset_of = parents.map((parent: any) => parent.code || '');
-  }
-
-  if (equivalents.length > 0) {
-    associatedTerms.equivalent_to = equivalents.map((eq: any) => eq.code || '');
-  }
-
-  // Construct the JSON object to download
-  const jsonToDownload = {
-    name: selectedNode.value?.label || 'Unnamed Node',
-    term_code: selectedNode.value?.key || 'Unknown Code',
-    ...restData,
-    elements: elementsObj,
-    ...(Object.keys(associatedTerms).length > 0 ? { associated_terms: associatedTerms } : {})
-  };
-
-  const dataStr: string = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonToDownload, null, 2));
-  const downloadAnchorNode: HTMLAnchorElement = document.createElement('a');
-  downloadAnchorNode.setAttribute("href", dataStr);
-  downloadAnchorNode.setAttribute("download", `${ontology.value}_${selectedNode.value?.label || 'data'}.json`);
-  document.body.appendChild(downloadAnchorNode); // Required for Firefox
-  downloadAnchorNode.click();
-  downloadAnchorNode.remove();
 };
+
+
+const isValidJsonString = (str: string): boolean => {
+  try {
+    JSON.parse(str);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+function convertToDataTableFormat(jsonData) {
+  if (typeof jsonData === 'string') {
+    jsonData = JSON.parse(jsonData);
+  }
+
+  const dataTableData = Object.keys(jsonData).map(key => {
+    return {
+      field: key,
+      type: jsonData[key]  // Assume the first item determines the type
+    };
+  });
+
+  return dataTableData;
+}
 
 onMounted(() => {
   isLoadingTree.value = true;
