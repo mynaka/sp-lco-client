@@ -12,6 +12,7 @@ export const OntologyService = {
      * @returns root nodes (nodes without a parent) of the ontology
      */
     getRootDatabaseTree: async (db: string): Promise<AxiosResponse<any, any>> => {
+        console.log(`${SERVER_DOMAIN}/entry/database/${db}`);
         return await axios.get(`${SERVER_DOMAIN}/entry/database/${db}`,);
     },
 

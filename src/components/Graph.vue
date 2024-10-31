@@ -20,7 +20,6 @@
 
     onMounted(async () => {
     const rootResponse = (await OntologyService.getRootDatabaseTree(props.ontology)).data.entries;
-
     rootResponse.forEach((item: any) => {
         nodes.value.push({
         id: item.key,

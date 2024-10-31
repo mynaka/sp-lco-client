@@ -1,2 +1,1 @@
-export const SERVER_DOMAIN =
-  "http://localhost:8000/api";
+export const SERVER_DOMAIN: string = import.meta.env.VITE_APP_SERVER_DOMAIN || 'http://localhost.com/api';
