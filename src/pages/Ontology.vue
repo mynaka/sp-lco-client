@@ -31,6 +31,7 @@
 
     <!-- Main content -->
     <div class="flex w-full md:w-3/4 p-4 overflow-y-auto">
+
       <Card class="lg:w-2/4 sm:w-full mx-auto lg:my-auto lg:h-fit sm:h-full shadow-lg"
         v-if="selectedNode!=null">
         <template #title>
@@ -44,10 +45,22 @@
         </template>
         <template #content>
           <div v-if="selectedNode && selectedNode.data">
-          <h3>{{ selectedNode.label }}</h3>
           <ul>
             <li v-for="(value, key) in selectedNode.data" :key="key">
-              <strong v-if="key != 'sample'">{{ key }}:</strong> 
+              <strong v-if="key != 'sample'"
+              v-tooltip.bottom="{
+                value: dataKeys[key]?.description,
+                pt: {
+                  arrow: {
+                    style: {
+                      borderBottomColor: '#7b1113' // Matches tooltip background color
+                    }
+                  }
+                }
+              }"
+              >
+                {{ dataKeys[key]?.displayName || key }}:
+              </strong> 
               <template v-if="isValidJsonString(value) && key != 'sample'">
                 <table border="1" class="table-auto w-full text-left">
                   <thead>
@@ -84,9 +97,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
-import {
-  Node
-} from "../interfaces";
+import { Node, dataKeys } from "../interfaces";
 
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -101,7 +112,6 @@ const query = ref();
 const isLoadingTree = ref(true);
 const ontology = ref((route.params.ontology as string).toUpperCase());
 
-const selectedKey = ref();
 const selectedNode = ref();
 
 
@@ -123,13 +133,36 @@ const loadOntologies = async (): Promise<void> => {
   try {
     const rootResponse = await OntologyService.getRootDatabaseTree(ontology.value);
     nodes.value = rootResponse.data.entries;
+
+    // Reorder keys in each node's data
+    nodes.value = nodes.value.map(node => {
+      const orderedData: Record<string, any> = {};
+
+      const preferredKeys = ["prefLabel", "identifier", "notation", "description"];
+      
+      preferredKeys.forEach(key => {
+        if (key in node.data) {
+          orderedData[key] = node.data[key];
+        }
+      });
+
+      Object.keys(node.data).forEach(key => {
+        if (!(key in orderedData)) {
+          orderedData[key] = node.data[key];
+        }
+      });
+
+      // Assign the ordered data back to node.data
+      node.data = orderedData;
+      return node;
+    });
   } catch (error) {
     console.error("Error fetching data:", error);
   } finally {
-    nodes.value.map((node) => (
-      node.loading = false,
-      node.isLoaded = false
-    ));
+    nodes.value.forEach(node => {
+      node.loading = false;
+      node.isLoaded = false;
+    });
     isLoadingTree.value = false;
   }
 };
@@ -166,32 +199,23 @@ const onNodeExpand = (node: Node): void => {
 
 const downloadCSV = () => {
   try {
-    // Get sample data from selectedNode
     const sampleData = JSON.parse(selectedNode.value.data.sample);
-    
-    // Prepare the CSV header
     const headers = Object.keys(sampleData);
     const csvRows = [];
-    
-    // Add the header row to CSV
+
     csvRows.push(headers.join(','));
 
-    // Get the maximum number of rows in any of the arrays
     const maxRows = Math.max(...Object.values(sampleData).map(arr => arr.length));
 
-    // Create rows for CSV
     for (let i = 0; i < maxRows; i++) {
       const row = headers.map(header => {
-        // Get the value for each header, or an empty string if undefined
         return sampleData[header][i] !== undefined ? sampleData[header][i] : '';
       });
       csvRows.push(row.join(','));
     }
 
-    // Create a CSV string
     const csvString = csvRows.join('\n');
 
-    // Open the CSV in a new tab
     const csvBlob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const csvUrl = URL.createObjectURL(csvBlob);
     const a = document.createElement('a');
@@ -216,7 +240,7 @@ const isValidJsonString = (str: string): boolean => {
   }
 };
 
-function convertToDataTableFormat(jsonData) {
+function convertToDataTableFormat(jsonData: string) {
   if (typeof jsonData === 'string') {
     jsonData = JSON.parse(jsonData);
   }

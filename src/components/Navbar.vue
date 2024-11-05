@@ -88,7 +88,7 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref } from 'vue';
+import { computed, defineComponent, ref, onMounted } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { OntologyService } from '../composables';
 
@@ -129,7 +129,7 @@ export default defineComponent({
     const userLogged = computed(() => userStore.getUsername);
     const token = ref();
     const loading = ref(false);
-
+    
     const toggle = (event: any) => {
       loginToggle.value.toggle(event);
     }

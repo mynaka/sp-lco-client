@@ -1,6 +1,10 @@
 <template>
   <Navbar/>
-  <Graph :ontology="ontology"/>
+  <Graph 
+  :ontology="ontology"
+  :width="containerWidth"
+  :height="containerHeight"
+  />
 </template>
 
 <script setup lang="ts">
@@ -11,5 +15,7 @@
 
   const route = useRoute();
   const ontology = ref((route.params.ontology as string).toUpperCase());
-  console.log(ontology.value);
+
+  const containerWidth = window.innerWidth * 0.67;
+  const containerHeight = window.innerHeight - 80;
 </script>

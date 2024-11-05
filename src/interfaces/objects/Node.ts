@@ -9,7 +9,7 @@ export interface Node {
 }
 
 export interface GraphNode {
-    id: number;
+    id: string;
     label: string;
     x: number;
     y: number;
