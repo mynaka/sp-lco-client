@@ -3,22 +3,28 @@
       <Card class="w-full mx-auto lg:my-auto lg:h-fit sm:h-full shadow-lg" v-if="selectedNode">
         <template #title>
           {{ selectedNode.label }}
+          <br>
+          <div class="flex items-center space-x-4">
           <Button
-            class="ml-2 text-sm py-1 px-20"
+            class="text-sm py-1 px-20 h-8"
             v-if="selectedNode.data.sample"
             @click="downloadCSV"
             label="Download Sample CSV"
             severity="info"
-            rounded
           />
-          <Button
-            class="ml-2 text-sm py-1 px-2"
+          
+          <FileUpload 
             v-if="selectedNode.data.sample"
-            @click="downloadCSV"
-            label="Standardize Terms"
-            severity="success"
-            rounded
-          />
+            mode="basic" 
+            name="demo[]" 
+            customUpload
+            accept=".csv" 
+            :maxFileSize="1000000" 
+            @uploader="onUpload"
+            :auto="true" 
+            chooseLabel="Standardize Terms"
+            class="text-sm py-1 px-20 h-8" />
+        </div>
         </template>
         <template #content>
           <div v-if="selectedNode.data">
@@ -72,13 +78,20 @@
   </template>
   
 <script setup lang="ts">
-  import { DataKeys, Node, dataKeys } from "../interfaces";
+  import { DataKeys, Node, GraphNode, dataKeys } from "../interfaces";
   import Card from 'primevue/card';
   import Button from 'primevue/button';
+  import FileUpload from "primevue/fileupload";
+  import { useToast } from 'primevue/usetoast';
+  import Toast from 'primevue/toast';
+
+  import { OntologyService } from "../composables/services/ontologies";
   
+  const toast = useToast();
+
   // Define props with the correct types
   const props = defineProps<{
-    selectedNode: Node;
+    selectedNode: Node | GraphNode | undefined;
     dataKeys: Record<string, { displayName: string; description: string }>;
   }>();
 
@@ -136,5 +149,36 @@
   
     return dataTableData;
   }
-  </script>
+
+  const onUpload = async (event: any): Promise<any> => {
+    const file = event.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    toast.add({ 
+      severity: 'info', 
+      summary: 'File Processing...', 
+      detail: 'Your file is being processed.', 
+      life: 3000 
+    });
+    OntologyService.getStandardizedCSV(formData)
+    .then(response => {
+      toast.add({ 
+        severity: 'success', 
+        summary: 'Processing Complete', 
+        detail: 'Your file will now download shortly.', 
+        life: 3000 
+      });
+      console.log('Response received:', response);
+      const blob = new Blob([response.data], { type: 'text/csv' });
+
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${file.name.replace('.csv', '')}_standardized.csv`;
+      link.click();
+    })
+    .catch(error => {
+      console.error('Error during file processing:', error);
+    });
+  };
+</script>
   

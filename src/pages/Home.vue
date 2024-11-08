@@ -19,18 +19,22 @@
           v-model="searchTerm" 
           optionLabel="name"
           inputId="term"
-          class="h-10 min-w-10"
+          class="h-10"
           :suggestions="filteredTermOptions" 
           @complete="search">
           <template #option="slotProps">
             <li @click="handleItemClick(slotProps.option)">
               <div class="flex items-center justify-between w-full">
-                <div>{{ slotProps.option.name }}</div>
-                <Button class="h-6 ml-2" 
-                :label="getButtonLabel(slotProps.option)" 
-                :severity="getButtonSeverity(slotProps.option)" 
-                :style="{ 'pointer-events': 'none' }"
-                rounded/>
+                <div class="flex-1 truncate">
+                  {{ slotProps.option.name.length > 30 ? slotProps.option.name.slice(0, 30) + '...' : slotProps.option.name }}
+                </div>
+                <div>
+                  <Button class="h-6 ml-2" 
+                    :label="getButtonLabel(slotProps.option)" 
+                    :severity="getButtonSeverity(slotProps.option)" 
+                    :style="{ 'pointer-events': 'none' }"
+                    rounded/>
+                </div>
               </div>
             </li>
           </template>
@@ -39,42 +43,20 @@
         </Floatlabel>
       </div>
       <div class="bg-white h-[20px]"></div>
-      <div class="flex justify-center items-center">OR</div>
-      <div class="flex justify-center items-center">Look for terms in the following Ontologies</div>
-      <div class="flex justify-center items-center">
-        <Button 
-          class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
-          severity="info"
-          @click="redirectToOntology('doid')"
-          outlined
-        >
-          <img src="../assets/logo/do-color-logo.png" alt="Button Icon" class="h-full w-auto object-contain"/>
-        </Button>
-      </div>
-      <div class="flex justify-center items-center">
-      <Button 
-          class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
-          severity="contrast"
-          @click="redirectToOntology('mondo')"
-          outlined
-        >
-          <img src="../assets/logo/mondo-logo.png" alt="Button Icon" class="h-full w-auto object-contain"/>
-        </Button>
-      </div>
     </template>
   </Card>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted } from 'vue';
+  import { ref } from 'vue';
   import { useRouter } from 'vue-router';
 
   import Button from 'primevue/button';
   import Card from 'primevue/card';
   import AutoComplete from 'primevue/autocomplete';
   import Floatlabel from 'primevue/floatlabel';
-  import { FilterMatchMode, FilterService } from '@primevue/core/api';
+
 
   import {
     OntologyService
@@ -85,30 +67,17 @@
   import Navbar from '../components/Navbar.vue';
 
   const router = useRouter();
-  const termOptions = ref<SearchTerm[]>([]);
   const filteredTermOptions = ref<SearchTerm[]>([]);
   const searchTerm = ref('');
 
   function search(event: { query: string; }) {
-    setTimeout(() => {
-      const query = event.query.trim().toLowerCase();
-      if (!query.length) {
-        filteredTermOptions.value = [...termOptions.value];
-      } else {
-        filteredTermOptions.value = FilterService.filter(termOptions.value, ['name'], query, FilterMatchMode.CONTAINS);
-
-        // sort them putting terms starting with the query before those only containing the query
-        filteredTermOptions.value.sort((a, b) => {
-          const startsWithQueryA = a.name.toLowerCase().startsWith(query) ? -1 : 0;
-          const startsWithQueryB = b.name.toLowerCase().startsWith(query) ? -1 : 0;
-          
-          if (startsWithQueryA !== startsWithQueryB) {
-            return startsWithQueryA - startsWithQueryB;
-          } else {
-            return a.name.toLowerCase().indexOf(query) - b.name.toLowerCase().indexOf(query);
-          }
-        });
-      }
+    setTimeout(async () => {
+        try {
+            const response = await OntologyService.getSearchTerms(event.query);
+            filteredTermOptions.value = response.data.entries;
+        } catch (error) {
+            console.error("Error fetching search terms:", error);
+        }
     }, 250);
   }
 
@@ -124,10 +93,6 @@
     });
   }
 
-const redirectToOntology = (ontology: string) => {
-  const url = `/ontologies/${ontology}/classes`;
-  router.push(url);
-};
 
   /**
    * @param option 
@@ -142,20 +107,10 @@ const redirectToOntology = (ontology: string) => {
   }
 
   function getButtonSeverity(option: SearchTerm) {
-    return option.code.startsWith('DOID:')  
+    return option.code.startsWith('ICD10CM:')  
       ? 'info' 
-      : option.code.startsWith('MONDO:')
+      : option.code.startsWith('MPO:')
       ? 'contrast'
       : 'secondary';
   }
-
-  onMounted(() => {
-    OntologyService.getAllTerms().then((data) => {
-        if (data && data.data && data.data.entries) {
-          data.data.entries.forEach((entry: any) => {
-            termOptions.value.push(entry);
-          });
-        }
-      });
-  });
 </script>

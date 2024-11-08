@@ -7,6 +7,15 @@ export const OntologyService = {
     },
 
     /**
+     * Search database for most relevant classes related to searchQuery
+     * @param searchQuery string containing search query
+     * @returns list of most relevant Classes (MAX 5)
+     */
+    getSearchTerms: async (searchQuery: string): Promise<AxiosResponse<any, any>> => {
+        return await axios.get(`${SERVER_DOMAIN}/entry/search/"${searchQuery}"`,);
+    },
+
+    /**
      * Get all root nodes from a specified ontology
      * @param db string containing the ontology that is being requested
      * @returns root nodes (nodes without a parent) of the ontology
@@ -22,7 +31,11 @@ export const OntologyService = {
      * @returns children of the parent node
      */
     getNodeChildren: async (notation: string): Promise<AxiosResponse<any, any>> => {
-        return await axios.get(`${SERVER_DOMAIN}/entry/database/${notation}/children`,);
+        return await axios.get(`${SERVER_DOMAIN}/entry/database/${notation}/children`);
+    },
+
+    getAncestors: async (notation:string): Promise<AxiosResponse<any, any>> => {
+        return await axios.get(`${SERVER_DOMAIN}/entry/database/${notation}/ancestors`);
     },
 
     getJSONFromFileInput: async (
@@ -38,4 +51,19 @@ export const OntologyService = {
             },
         );
     },
+
+    getStandardizedCSV: async (
+        form_data: FormData,
+    ): Promise<AxiosResponse<any, any>> => {
+        try {
+            return axios.post(`${SERVER_DOMAIN}/entry/uploadfile`, form_data, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+        } catch (error) {
+            console.error("Error uploading file:", error);
+            throw error;
+        }
+    }
 };

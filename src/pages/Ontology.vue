@@ -10,7 +10,15 @@
               <span class="self-center text-xl font-semibold whitespace-nowrap">Liver Cancer Ontologies</span>
             </a>
             <br>
-            {{ ontology }}
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <span class="flex items-center">{{ ontology }}</span>
+              <Button 
+                class="h-12 w-40 text-sm" 
+                severity="info" 
+                label="Switch to Graph View" 
+                @click="goToGraph" 
+              rounded />
+            </div>
           </template>
           <template #content>
             <template v-if="isLoadingTree">
@@ -20,6 +28,7 @@
               <Tree :value="nodes"
                 @node-expand="onNodeExpand"
                 @nodeSelect="onNodeSelect"
+                :expanded-keys="expandedKeys"
                 selectionMode="single"
                 loadingMode="icon" 
                 class="w-full md:w-[30rem]"/>
@@ -96,7 +105,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { Node, dataKeys } from "../interfaces";
 
 import Button from 'primevue/button';
@@ -108,11 +117,13 @@ import { OntologyService } from "../composables";
 
 const nodes = ref<Node[]>([]);
 const route = useRoute();
+const router = useRouter();
 const query = ref();
 const isLoadingTree = ref(true);
 const ontology = ref((route.params.ontology as string).toUpperCase());
 
 const selectedNode = ref();
+const expandedKeys = ref({});
 
 
 if (route.query.code != null) {
@@ -163,7 +174,6 @@ const loadOntologies = async (): Promise<void> => {
       node.loading = false;
       node.isLoaded = false;
     });
-    isLoadingTree.value = false;
   }
 };
 
@@ -172,30 +182,33 @@ const loadOntologies = async (): Promise<void> => {
  * Get the children of the node from the backend if node is not expanded already
  * @param node node to be expanded
  */
-const onNodeExpand = (node: Node): void => {
-  if (!node.isLoaded){
+ async function onNodeExpand(node: Node): Promise<void> {
+  if (!node.isLoaded) {
     const children = ref<Node[]>([]);
     if (!node.leaf) node.loading = true;
 
-    setTimeout(() => {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       let notation = node.data.notation ?? node.data.identifier;
       
-      OntologyService.getNodeChildren(notation).then(async (data) => {
-        children.value = data.data.entries;
+      const data = await OntologyService.getNodeChildren(notation);
+      children.value = data.data.entries;
 
-        node.children = children.value;
-        node.children.forEach((child) => {
-          child.loading = false;
-        });
-        node.loading = false;
-        node.isLoaded = true;
-      }).catch((error) => {
-        console.error("Error fetching data:", error);
-        node.loading = false;
+      node.children = children.value;
+      node.children.forEach((child) => {
+        child.loading = false;
       });
-    }, 500);
+      node.loading = false;
+      node.isLoaded = true;
+      expandedKeys.value[node.key] = true;
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      node.loading = false;
+    }
   }
 }
+
 
 const downloadCSV = () => {
   try {
@@ -241,22 +254,64 @@ const isValidJsonString = (str: string): boolean => {
 };
 
 function convertToDataTableFormat(jsonData: string) {
-  if (typeof jsonData === 'string') {
-    jsonData = JSON.parse(jsonData);
-  }
+  let parsedJSONData:Record<string, any> = JSON.parse(jsonData);;
+  parsedJSONData = JSON.parse(jsonData);
 
-  const dataTableData = Object.keys(jsonData).map(key => {
+  const dataTableData = Object.keys(parsedJSONData).map(key => {
     return {
       field: key,
-      type: jsonData[key]  // Assume the first item determines the type
+      type: parsedJSONData[key]
     };
   });
 
   return dataTableData;
 }
 
-onMounted(() => {
+function goToGraph() {
+  const path = `/ontologies/${ontology.value}/graph`;
+  const query = route.query.code ? { code: route.query.code } : {};
+  router.push({ path, query });
+}
+
+function getNodeMap(nodes: Node[]): Map<string, Node> {
+  const map = new Map<string, Node>();
+
+  function traverse(nodes: Node[]) {
+    for (const node of nodes) {
+      map.set(node.key, node);
+      if (node.children) {
+        traverse(node.children);  // Recurse into children
+      }
+    }
+  }
+
+  traverse(nodes);
+  return map;
+}
+
+onMounted(async () => {
   isLoadingTree.value = true;
-  loadOntologies();
+  try {
+    loadOntologies();
+    if (query.value) {
+      const ancestors = (await OntologyService.getAncestors(query.value)).data.ancestors ?? [];
+      for (const ancestor of ancestors) {
+        const nodeMap = getNodeMap(nodes.value);
+        const matchedNode = nodeMap.get(ancestor);
+        
+        if (matchedNode) {
+          await onNodeExpand(matchedNode);  
+        } else {
+          console.log(`No match found for ancestor: ${ancestor}`);
+        }
+      }
+      selectedNode.value = getNodeMap(nodes.value).get(query.value);
+
+
+    }
+  } catch (error) {
+    console.error("Error loading ancestors or nodes:", error);
+  }
+  isLoadingTree.value = false;
 });
 </script>

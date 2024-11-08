@@ -88,7 +88,7 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, onMounted } from 'vue';
+import { computed, defineComponent, ref } from 'vue';
 import { useToast } from 'primevue/usetoast';
 import { OntologyService } from '../composables';
 

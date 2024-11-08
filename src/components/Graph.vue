@@ -17,6 +17,7 @@ import Node from '../components/Node.vue';
 import { ref, onMounted, nextTick } from 'vue';
 import { OntologyService } from "../composables";
 import { GraphNode, GraphLink } from "../interfaces";
+import { useRoute } from 'vue-router';
 
 const props = defineProps<{
     ontology: string;
@@ -28,12 +29,15 @@ const nodes = ref<GraphNode[]>([]);
 const links = ref<GraphLink[]>([]);
 const svg = ref<SVGSVGElement | null>(null);
 const selectedNode = ref<GraphNode>();
-const lastSelectedNode = ref();
 const dataKeys = ref({});
+
+const route = useRoute();
+const query = ref();
 
 const width = ref(props.width);
 const height = ref(props.height);
 let simulation: any;
+let isQuerying = true;
 onMounted(async () => {
     isLoading.value = true;
     await nextTick();
@@ -87,6 +91,17 @@ onMounted(async () => {
         .force("center", d3.forceCenter(props.width / 2, props.height / 2));
 
     drawGraph();
+
+    if (route.query.code != null) {
+        query.value = route.query.code;
+        const ancestors = (await OntologyService.getAncestors(query.value)).data.ancestors;
+        for (const ancestor of ancestors) await triggerNodeClick(ancestor);
+
+        isQuerying = false;
+        await triggerNodeClick(query.value);
+    }
+
+    isQuerying = false;
     isLoading.value = false;
 });
 
@@ -132,13 +147,18 @@ function drawGraph() {
                     .select("circle")
                     .attr("fill", "orange");
                 if (selectedNode.value && selectedNode.value != d) {
-                    console.log(selectedNode.value);
-                    console.log(selectedNode.value.id);
                     d3.select(`g[data-id="${selectedNode.value.id}"]`).select("circle")
                         .attr("fill", "#69b3a2");
                 }
-                selectedNode.value = d;
+                if (!isQuerying) selectedNode.value = d;
                 if (!d.isLoaded && !d.leaf) {
+                    d3.select(event.currentTarget)
+                    .append("text")
+                    .attr("dy", "2em")
+                    .attr("font-size", 10)
+                    .attr("text-anchor", "middle")
+                    .text("Loading...");
+
                     d.isLoaded = true;
                     const children = (await OntologyService.getNodeChildren(d.id)).data.entries;
                     children.forEach((child: any) => {
@@ -207,5 +227,17 @@ function dragended(event: any, d: any) {
     if (!event.active) simulation.alphaTarget(0);
     d.fx = null;
     d.fy = null;
+}
+
+async function triggerNodeClick(nodeIdentifier: string): Promise<void> {
+    let nodeElement = d3.select(`g[data-id="${nodeIdentifier}"]`).node() as Element | null;
+
+    while (!nodeElement) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        nodeElement = d3.select(`g[data-id="${nodeIdentifier}"]`).node() as Element | null;
+    }
+
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true });
+    nodeElement.dispatchEvent(event);
 }
 </script>
