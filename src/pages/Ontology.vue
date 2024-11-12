@@ -68,9 +68,60 @@
                 }
               }"
               >
-                {{ dataKeys[key]?.displayName || key }}:
+                {{ dataKeys[key]?.displayName || key }}
+                <span class="info"></span>:
               </strong> 
-              <template v-if="isValidJsonString(value) && key != 'sample'">
+
+              <template v-if="isValidJsonString(value).isArray">
+                <table border="1" class="table-auto w-full text-left">
+                  <thead>
+                    <tr>
+                      <th class="px-4 py-2"
+                      v-tooltip.bottom="{
+                      value: dataKeys['feat_type'].description,
+                      pt: {
+                        arrow: {
+                          style: {
+                            borderBottomColor: '#7b1113' // Matches tooltip background color
+                          }
+                        }
+                      }
+                    }">{{ dataKeys['feat_type'].displayName }}<span class="info"></span>:</th>
+                      <th class="px-4 py-2"
+                      v-tooltip.bottom="{
+                      value: dataKeys['feat_pos'].description,
+                      pt: {
+                        arrow: {
+                          style: {
+                            borderBottomColor: '#7b1113' // Matches tooltip background color
+                          }
+                        }
+                      }
+                      }">{{ dataKeys['feat_pos'].displayName }}<span class="info"></span>:</th>
+                      <th class="px-4 py-2"
+                        v-tooltip.bottom="{
+                        value: dataKeys['feat_desc'].description,
+                        pt: {
+                          arrow: {
+                            style: {
+                              borderBottomColor: '#7b1113' // Matches tooltip background color
+                            }
+                          }
+                        }
+                        }">{{ dataKeys['feat_desc'].displayName }}<span class="info"></span>:</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(feature, index) in isValidJsonString(value).parsed" :key="index">
+                      <td class="border px-4 py-2">{{ feature.type }}</td>
+                      <td class="border px-4 py-2">{{ feature.positions }}</td>
+                      <td class="border px-4 py-2">{{ feature.desc }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </template>
+
+              <template v-else-if="isValidJsonString(value).isValid && key != 'sample'">
                 <table border="1" class="table-auto w-full text-left">
                   <thead>
                     <tr>
@@ -86,8 +137,24 @@
                   </tbody>
                 </table>
               </template>
-              <template v-else-if="key !== 'sample'" >
-                {{ value }}
+              
+              <template v-else-if="Array.isArray(value) && key !== 'sample'">
+                <div v-for="(item, index) in value" :key="index">
+                  <template v-if="isValidLink(item)">
+
+                    <a :href="item" target="_blank" class="text-blue-600 hover:underline">
+                      &nbsp;&nbsp;&nbsp;&nbsp;{{ item }}
+                    </a>
+                  </template>
+                  <template v-else>
+
+                    &nbsp;&nbsp;&nbsp;&nbsp;{{ item }}
+                  </template>
+                </div>
+              </template>
+
+              <template v-else-if="key !== 'sample'">
+                <span v-html="value.replace(/\n/g, '<br>')"></span>
               </template>
             </li>
           </ul>
@@ -104,9 +171,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Node, dataKeys } from "../interfaces";
+import { NodeData, dataKeys } from "../interfaces";
 
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -114,16 +181,18 @@ import Tree from 'primevue/tree';
 import ProgressSpinner from 'primevue/progressspinner';
 
 import { OntologyService } from "../composables";
+import { match } from 'assert';
 
-const nodes = ref<Node[]>([]);
+const nodes = ref<NodeData[]>([]);
 const route = useRoute();
 const router = useRouter();
 const query = ref();
 const isLoadingTree = ref(true);
 const ontology = ref((route.params.ontology as string).toUpperCase());
 
-const selectedNode = ref();
-const expandedKeys = ref({});
+const selectedNode = ref<NodeData>();
+const expandedKeys: Ref<Record<string, boolean>> = ref({});;
+let nodeMap: Map<string, NodeData>;
 
 
 if (route.query.code != null) {
@@ -131,10 +200,7 @@ if (route.query.code != null) {
 }
 
 const onNodeSelect = (node: any) => {
-  // isSearching.value = false;
   selectedNode.value = node;
-  // cardContents.value = parsedElements.value;
-  // query.value = node.key;
 };
 
 /**
@@ -145,26 +211,8 @@ const loadOntologies = async (): Promise<void> => {
     const rootResponse = await OntologyService.getRootDatabaseTree(ontology.value);
     nodes.value = rootResponse.data.entries;
 
-    // Reorder keys in each node's data
     nodes.value = nodes.value.map(node => {
-      const orderedData: Record<string, any> = {};
-
-      const preferredKeys = ["prefLabel", "identifier", "notation", "description"];
-      
-      preferredKeys.forEach(key => {
-        if (key in node.data) {
-          orderedData[key] = node.data[key];
-        }
-      });
-
-      Object.keys(node.data).forEach(key => {
-        if (!(key in orderedData)) {
-          orderedData[key] = node.data[key];
-        }
-      });
-
-      // Assign the ordered data back to node.data
-      node.data = orderedData;
+      node.data = orderFields(node);
       return node;
     });
   } catch (error) {
@@ -174,17 +222,39 @@ const loadOntologies = async (): Promise<void> => {
       node.loading = false;
       node.isLoaded = false;
     });
+    nodeMap = getNodeMap(nodes.value);
   }
 };
 
+const orderFields = (node: NodeData): Record<string, any> => {
+  const orderedData: Record<string, any> = {};
+  const preferredKeys = ["prefLabel", "identifier", "notation", "altLabel", "description", "function", "sequence", "features", "references"];
+  
+  preferredKeys.forEach(key => {
+    if (key in node.data) {
+      orderedData[key] = node.data[key];
+      if (key == 'identifier') {
+        orderedData['type'] = node.nodeType;
+      }
+    }
+  });
+
+  Object.keys(node.data).forEach(key => {
+    if (!(key in orderedData)) {
+      orderedData[key] = node.data[key];
+    }
+  });
+
+  return orderedData;
+}
 
 /**
  * Get the children of the node from the backend if node is not expanded already
  * @param node node to be expanded
  */
- async function onNodeExpand(node: Node): Promise<void> {
+async function onNodeExpand(node: NodeData): Promise<void> {
   if (!node.isLoaded) {
-    const children = ref<Node[]>([]);
+    const children = ref<NodeData[]>([]);
     if (!node.leaf) node.loading = true;
 
     try {
@@ -197,6 +267,7 @@ const loadOntologies = async (): Promise<void> => {
 
       node.children = children.value;
       node.children.forEach((child) => {
+        child.data = orderFields(child);
         child.loading = false;
       });
       node.loading = false;
@@ -212,7 +283,7 @@ const loadOntologies = async (): Promise<void> => {
 
 const downloadCSV = () => {
   try {
-    const sampleData = JSON.parse(selectedNode.value.data.sample);
+    const sampleData: Record<string, any[]> = JSON.parse(selectedNode.value?.data.sample);
     const headers = Object.keys(sampleData);
     const csvRows = [];
 
@@ -244,14 +315,19 @@ const downloadCSV = () => {
 };
 
 
-const isValidJsonString = (str: string): boolean => {
+const isValidJsonString = (str: string) => {
   try {
-    JSON.parse(str);
-    return true;
+    const parsed = JSON.parse(str);
+    return { isValid: true, isArray: Array.isArray(parsed), parsed };
   } catch (e) {
-    return false;
+    return { isValid: false, isArray: false };
   }
 };
+
+const isValidLink = (value: string): boolean => {
+  const regex = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
+  return regex.test(value);
+}
 
 function convertToDataTableFormat(jsonData: string) {
   let parsedJSONData:Record<string, any> = JSON.parse(jsonData);;
@@ -269,18 +345,18 @@ function convertToDataTableFormat(jsonData: string) {
 
 function goToGraph() {
   const path = `/ontologies/${ontology.value}/graph`;
-  const query = route.query.code ? { code: route.query.code } : {};
+  const query = selectedNode.value?.key ? { code: selectedNode.value?.key } : {};
   router.push({ path, query });
 }
 
-function getNodeMap(nodes: Node[]): Map<string, Node> {
-  const map = new Map<string, Node>();
+function getNodeMap(nodes: NodeData[]): Map<string, NodeData> {
+  const map = new Map<string, NodeData>();
 
-  function traverse(nodes: Node[]) {
+  function traverse(nodes: NodeData[]) {
     for (const node of nodes) {
       map.set(node.key, node);
       if (node.children) {
-        traverse(node.children);  // Recurse into children
+        traverse(node.children);
       }
     }
   }
@@ -291,16 +367,20 @@ function getNodeMap(nodes: Node[]): Map<string, Node> {
 
 onMounted(async () => {
   isLoadingTree.value = true;
+  loadOntologies();
   try {
-    loadOntologies();
     if (query.value) {
       const ancestors = (await OntologyService.getAncestors(query.value)).data.ancestors ?? [];
       for (const ancestor of ancestors) {
-        const nodeMap = getNodeMap(nodes.value);
         const matchedNode = nodeMap.get(ancestor);
         
         if (matchedNode) {
-          await onNodeExpand(matchedNode);  
+          await onNodeExpand(matchedNode);
+          if (matchedNode.children) {
+            matchedNode.children.forEach(child => {
+              nodeMap.set(child.key, child);
+            });
+          }
         } else {
           console.log(`No match found for ancestor: ${ancestor}`);
         }
@@ -315,3 +395,16 @@ onMounted(async () => {
   isLoadingTree.value = false;
 });
 </script>
+<style>
+/**Reference:
+*
+*/
+.info {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 17.139v-6.167'/%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M11.958 7.563h.008'/%3E%3Crect width='18.5' height='18.5' x='2.75' y='2.75' stroke-width='0.7' rx='6'/%3E%3C/g%3E%3C/svg%3E");
+}
+</style>

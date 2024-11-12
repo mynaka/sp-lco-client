@@ -43,6 +43,34 @@
         </Floatlabel>
       </div>
       <div class="bg-white h-[20px]"></div>
+      <div class="flex justify-center items-center">OR</div>
+      <div class="flex justify-center items-center">Look for terms in the following Ontologies</div>
+      <div class="flex justify-center items-center">
+        <Button 
+          class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
+          severity="info"
+          @click="redirectToOntology('mpo')"
+        ><strong>MPO</strong>
+        </Button>
+      </div>
+      <div class="flex justify-center items-center">
+      <Button 
+        class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
+        severity="contrast"
+        @click="redirectToOntology('ncbi')"
+        outlined
+      >
+      <strong>NCBI Pathogen Ontology  </strong>
+      </Button>
+      </div>
+      <div class="flex justify-center items-center">
+      <Button 
+        class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
+        @click="redirectToOntology('table')"
+      >
+      <strong>Tables</strong>
+      </Button>
+    </div>
     </template>
   </Card>
   </div>
@@ -112,5 +140,10 @@
       : option.code.startsWith('MPO:')
       ? 'contrast'
       : 'secondary';
+  }
+
+  function redirectToOntology(ontology: string) {
+    const path = `/ontologies/${ontology}/classes`;
+    router.push({ path });
   }
 </script>

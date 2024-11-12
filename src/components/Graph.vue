@@ -4,20 +4,26 @@
             <div v-if="isLoading" class="flex justify-center items-center h-full">
                 <ProgressSpinner />
             </div>
+            <Button severity="info" 
+            class="mb-2 px-4 py-2 bg-blue-500 text-white rounded"
+            @click="goToTree">
+                Switch to Tree View
+            </Button>
             <svg ref="svg" :width="width" :height="height"></svg>
         </div>
-        <Node :selectedNode="selectedNode" :dataKeys="dataKeys" />
+        <NodeCard :selectedNode="selectedNode" />
     </div>
 </template>
 
 <script setup lang="ts">
 import * as d3 from 'd3';
 import ProgressSpinner from 'primevue/progressspinner';
-import Node from '../components/Node.vue';
+import NodeCard from './NodeCard.vue';
 import { ref, onMounted, nextTick } from 'vue';
 import { OntologyService } from "../composables";
-import { GraphNode, GraphLink } from "../interfaces";
-import { useRoute } from 'vue-router';
+import { GraphNode, GraphLink, NodeData } from "../interfaces";
+import Button from 'primevue/button';
+import { useRoute, useRouter } from 'vue-router';
 
 const props = defineProps<{
     ontology: string;
@@ -28,16 +34,37 @@ const isLoading = ref(false);
 const nodes = ref<GraphNode[]>([]);
 const links = ref<GraphLink[]>([]);
 const svg = ref<SVGSVGElement | null>(null);
-const selectedNode = ref<GraphNode>();
-const dataKeys = ref({});
+const selectedNode = ref<NodeData | undefined>();
+
 
 const route = useRoute();
+const router = useRouter();
 const query = ref();
 
 const width = ref(props.width);
 const height = ref(props.height);
 let simulation: any;
 let isQuerying = true;
+
+const orderFields = (node: GraphNode): Record<string, any> => {
+  const orderedData: Record<string, any> = {};
+  const preferredKeys = ["prefLabel", "identifier", "notation", "altLabel", "description", "function", "sequence", "features", "references"];
+  
+  preferredKeys.forEach(key => {
+    if (key in node.data) {
+      orderedData[key] = node.data[key];
+    }
+  });
+
+  Object.keys(node.data).forEach(key => {
+    if (!(key in orderedData)) {
+      orderedData[key] = node.data[key];
+    }
+  });
+
+  return orderedData;
+}
+
 onMounted(async () => {
     isLoading.value = true;
     await nextTick();
@@ -45,40 +72,16 @@ onMounted(async () => {
     height.value = props.height-20;
 
     const rootResponse = (await OntologyService.getRootDatabaseTree(props.ontology)).data.entries;
-    const preferredKeys = ["prefLabel", "identifier", "notation", "description"];
-    rootResponse.forEach((item: any) => {
-        /**
-         * Sort data first to make sure things like preferred terms and description come first
-        */
-        const sortedData = Object.keys(item.data)
-            .sort((a, b) => {
-                const indexA = preferredKeys.indexOf(a);
-                const indexB = preferredKeys.indexOf(b);
-
-                if (indexA !== -1 && indexB !== -1) {
-                    return indexA - indexB;
-                }
-                if (indexA !== -1) {
-                    return -1;
-                }
-                if (indexB !== -1) {
-                    return 1;
-                }
-
-                return a.localeCompare(b);
-            })
-            .reduce((acc, key) => {
-                acc[key] = item.data[key];
-                return acc;
-            }, {} as Record<string, any>);
+    rootResponse.forEach((root: GraphNode) => {
+        let sortedData = orderFields(root);
         nodes.value.push({
-            id: item.key,
-            label: item.label,
+            id: root.key,
+            label: root.label,
             data: sortedData,
             x: Math.random() * props.width,
             y: Math.random() * props.height,
             isLoaded: false,
-            leaf: item.leaf
+            leaf: root.leaf
         });
     });
 
@@ -95,7 +98,7 @@ onMounted(async () => {
     if (route.query.code != null) {
         query.value = route.query.code;
         const ancestors = (await OntologyService.getAncestors(query.value)).data.ancestors;
-        for (const ancestor of ancestors) await triggerNodeClick(ancestor);
+        if (ancestors) for (const ancestor of ancestors) await triggerNodeClick(ancestor);
 
         isQuerying = false;
         await triggerNodeClick(query.value);
@@ -122,13 +125,25 @@ function drawGraph() {
                     })
             );
 
-
+        // Create links with labels
         const linkSelection = zoomGroup
             .selectAll("line")
             .data(links.value)
             .join("line")
             .attr("stroke", "#999")
             .attr("stroke-opacity", 0.6);
+
+        // Create link labels
+        zoomGroup
+            .selectAll("text.link-label")
+            .data(links.value)
+            .join("text")
+            .attr("class", "link-label")
+            .attr("x", (d: any) => (d.source.x + d.target.x) / 2)
+            .attr("y", (d: any) => (d.source.y + d.target.y) / 2)
+            .attr("font-size", "10px")
+            .attr("text-anchor", "middle")
+            .text((d: any) => d.relationship || "");
 
         const nodeSelection = zoomGroup
             .selectAll<SVGGElement, GraphNode>("g")
@@ -151,34 +166,35 @@ function drawGraph() {
                         .attr("fill", "#69b3a2");
                 }
                 if (!isQuerying) selectedNode.value = d;
+
                 if (!d.isLoaded && !d.leaf) {
                     d3.select(event.currentTarget)
-                    .append("text")
-                    .attr("dy", "2em")
-                    .attr("font-size", 10)
-                    .attr("text-anchor", "middle")
-                    .text("Loading...");
+                        .append("text")
+                        .attr("dy", "2em")
+                        .attr("font-size", 10)
+                        .attr("text-anchor", "middle")
+                        .text("Loading...");
 
                     d.isLoaded = true;
                     const children = (await OntologyService.getNodeChildren(d.id)).data.entries;
                     children.forEach((child: any) => {
                         if (!nodes.value.find(node => node.id === child.id)) {
+                            let sortedData = orderFields(child);
                             nodes.value.push({
                                 id: child.key,
                                 label: child.label,
-                                data: child.data,
+                                data: sortedData,
                                 x: d.x + (Math.random() - 0.5) * 100,
                                 y: d.y + (Math.random() - 0.5) * 100,
                                 isLoaded: false,
                                 leaf: child.leaf,
                             });
-                            links.value.push({ source: d.id, target: child.key });
+                            links.value.push({ source: child.key, target: d.id, relationship: 'subset_of' });
                         }
                     });
                     updateGraph();
                 }
             });
-
 
         nodeSelection.append("circle")
             .attr("fill", d => d === selectedNode.value ? "orange" : "#69b3a2")
@@ -198,12 +214,16 @@ function drawGraph() {
                 .attr("x2", d => (d.target as GraphNode).x)
                 .attr("y2", d => (d.target as GraphNode).y);
 
+            zoomGroup
+                .selectAll("text.link-label")
+                .attr("x", (d: any) => (d.source.x + d.target.x) / 2)
+                .attr("y", (d: any) => (d.source.y + d.target.y) / 2);
+
             nodeSelection
                 .attr("transform", (d: any) => `translate(${d.x},${d.y})`);
         });
     }
 }
-
 function updateGraph() {
     simulation.nodes(nodes.value);
     simulation.force("link").links(links.value);
@@ -239,5 +259,13 @@ async function triggerNodeClick(nodeIdentifier: string): Promise<void> {
 
     const event = new MouseEvent("click", { bubbles: true, cancelable: true });
     nodeElement.dispatchEvent(event);
+}
+function goToTree() {
+    const ontology = (route.params.ontology as string).toUpperCase();
+
+    const path = `/ontologies/${ontology}/classes`;
+    const query = selectedNode.value ? { code: selectedNode.value?.data.identifier } : {};
+    console.log(query);
+    router.push({ path, query });
 }
 </script>

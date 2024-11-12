@@ -1,23 +1,20 @@
-export interface Node {
+export interface NodeData {
     key: string;
     label: string;
     data: Record<string, any>;
     leaf: boolean;
     loading: boolean;
-    children?: Node[];
+    children?: NodeData[];
     isLoaded?: boolean;
+    nodeType: string;
 }
 
-export interface GraphNode {
+export interface GraphNode extends NodeData {
     id: string;
-    label: string;
     x: number;
     y: number;
     fx?: number | null;
     fy?: number | null;
-    data?: any;
-    isLoaded: boolean;
-    leaf: boolean;
 }
   
 export interface GraphLink {
