@@ -1,5 +1,5 @@
 <template>
-  <div class="flex w-full md:w-3/4 p-4 overflow-y-auto">
+  <div class="flex w-full min-w-3/4 md:w-3/4 p-4 overflow-y-auto">
     <Card class="lg:w-full sm:w-full mx-auto lg:my-auto lg:h-fit sm:h-full shadow-lg"
       v-if="selectedNode!=null">
       <template #title>

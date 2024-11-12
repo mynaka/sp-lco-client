@@ -18,6 +18,7 @@ export interface GraphNode extends NodeData {
 }
   
 export interface GraphLink {
-    source: number | GraphNode;
-    target: number | GraphNode;
+    source: string | GraphNode;
+    target: string | GraphNode;
+    relationship: string;
 }

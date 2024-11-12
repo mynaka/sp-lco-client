@@ -37,136 +37,7 @@
           </Card>
       </div>
     </div>
-
-    <!-- Main content -->
-    <div class="flex w-full md:w-3/4 p-4 overflow-y-auto">
-
-      <Card class="lg:w-2/4 sm:w-full mx-auto lg:my-auto lg:h-fit sm:h-full shadow-lg"
-        v-if="selectedNode!=null">
-        <template #title>
-          {{ selectedNode.label }}
-          <Button class="ml-2"
-            v-if="selectedNode.data.sample"
-            @click="downloadCSV"
-            label="Download Sample CSV" 
-            severity="info" 
-            rounded/>
-        </template>
-        <template #content>
-          <div v-if="selectedNode && selectedNode.data">
-          <ul>
-            <li v-for="(value, key) in selectedNode.data" :key="key">
-              <strong v-if="key != 'sample'"
-              v-tooltip.bottom="{
-                value: dataKeys[key]?.description,
-                pt: {
-                  arrow: {
-                    style: {
-                      borderBottomColor: '#7b1113' // Matches tooltip background color
-                    }
-                  }
-                }
-              }"
-              >
-                {{ dataKeys[key]?.displayName || key }}
-                <span class="info"></span>:
-              </strong> 
-
-              <template v-if="isValidJsonString(value).isArray">
-                <table border="1" class="table-auto w-full text-left">
-                  <thead>
-                    <tr>
-                      <th class="px-4 py-2"
-                      v-tooltip.bottom="{
-                      value: dataKeys['feat_type'].description,
-                      pt: {
-                        arrow: {
-                          style: {
-                            borderBottomColor: '#7b1113' // Matches tooltip background color
-                          }
-                        }
-                      }
-                    }">{{ dataKeys['feat_type'].displayName }}<span class="info"></span>:</th>
-                      <th class="px-4 py-2"
-                      v-tooltip.bottom="{
-                      value: dataKeys['feat_pos'].description,
-                      pt: {
-                        arrow: {
-                          style: {
-                            borderBottomColor: '#7b1113' // Matches tooltip background color
-                          }
-                        }
-                      }
-                      }">{{ dataKeys['feat_pos'].displayName }}<span class="info"></span>:</th>
-                      <th class="px-4 py-2"
-                        v-tooltip.bottom="{
-                        value: dataKeys['feat_desc'].description,
-                        pt: {
-                          arrow: {
-                            style: {
-                              borderBottomColor: '#7b1113' // Matches tooltip background color
-                            }
-                          }
-                        }
-                        }">{{ dataKeys['feat_desc'].displayName }}<span class="info"></span>:</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(feature, index) in isValidJsonString(value).parsed" :key="index">
-                      <td class="border px-4 py-2">{{ feature.type }}</td>
-                      <td class="border px-4 py-2">{{ feature.positions }}</td>
-                      <td class="border px-4 py-2">{{ feature.desc }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </template>
-
-              <template v-else-if="isValidJsonString(value).isValid && key != 'sample'">
-                <table border="1" class="table-auto w-full text-left">
-                  <thead>
-                    <tr>
-                      <th class="px-4 py-2">Field</th>
-                      <th class="px-4 py-2">Type</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="item in convertToDataTableFormat(value)" :key="item.field">
-                      <td class="border px-4 py-2">{{ item.field }}</td>
-                      <td class="border px-4 py-2">{{ item.type }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </template>
-              
-              <template v-else-if="Array.isArray(value) && key !== 'sample'">
-                <div v-for="(item, index) in value" :key="index">
-                  <template v-if="isValidLink(item)">
-
-                    <a :href="item" target="_blank" class="text-blue-600 hover:underline">
-                      &nbsp;&nbsp;&nbsp;&nbsp;{{ item }}
-                    </a>
-                  </template>
-                  <template v-else>
-
-                    &nbsp;&nbsp;&nbsp;&nbsp;{{ item }}
-                  </template>
-                </div>
-              </template>
-
-              <template v-else-if="key !== 'sample'">
-                <span v-html="value.replace(/\n/g, '<br>')"></span>
-              </template>
-            </li>
-          </ul>
-        </div>
-        </template>
-      </Card>
-      <Card class="mx-auto my-auto h-fit shadow-lg" v-else>
-        <template #title class="justify-center items-center">
-          SELECT A TERM TO VIEW
-        </template>
-      </Card>
-    </div>
+    <NodeCard :selectedNode="selectedNode" />
   </div>
 </template>
 
@@ -181,7 +52,7 @@ import Tree from 'primevue/tree';
 import ProgressSpinner from 'primevue/progressspinner';
 
 import { OntologyService } from "../composables";
-import { match } from 'assert';
+import NodeCard from "../components/NodeCard.vue";
 
 const nodes = ref<NodeData[]>([]);
 const route = useRoute();

@@ -5,7 +5,7 @@
         <img src="../assets/logo/uplb-official-logo.png" class="h-8 md:h-10 lg:h-12" alt="UPLB Logo" />
         <span class="self-center text-l md:text-xl lg:text-2xl font-semibold whitespace-nowrap">Liver Cancer Ontologies</span>
       </a>
-      <div class="hidden w-full md:block md:w-auto" id="navbar-solid-bg">
+      <div class="hidden w-full md:block md:w-auto" id="navbar-solid-bg" v-if="false">
         <ul
           class="flex flex-col font-medium mt-4 rounded-lg bg-gray-50 md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-transparent dark:bg-gray-800 md:dark:bg-transparent dark:border-gray-700"
         >

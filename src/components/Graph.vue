@@ -1,16 +1,31 @@
 <template>
     <div class="flex">
         <div class="flex-grow border-2 border-black p-2">
+            <div class="flex items-center mb-2">
+                <!-- Tree Button -->
+                <Button 
+                    severity="info" 
+                    class="px-4 py-2 bg-blue-500 text-white rounded"
+                    @click="goToTree">
+                    Switch to Tree View
+                </Button>
+
+                <!-- Legend -->
+                <div class="ml-4">
+                    <p class="font-semibold mb-1">Legend:</p>
+                    <div class="flex items-center mb-2">
+                        <div class="w-8 h-0.5 bg-green-500 mr-2"></div>
+                        <span>Subset of</span>
+                    </div>
+                </div>
+            </div>
             <div v-if="isLoading" class="flex justify-center items-center h-full">
                 <ProgressSpinner />
             </div>
-            <Button severity="info" 
-            class="mb-2 px-4 py-2 bg-blue-500 text-white rounded"
-            @click="goToTree">
-                Switch to Tree View
-            </Button>
-            <svg ref="svg" :width="width" :height="height"></svg>
+            <svg ref="svg" class="border-2" :width="width" :height="height"></svg>
         </div>
+
+        <!-- Node Card Component -->
         <NodeCard :selectedNode="selectedNode" />
     </div>
 </template>
@@ -21,7 +36,7 @@ import ProgressSpinner from 'primevue/progressspinner';
 import NodeCard from './NodeCard.vue';
 import { ref, onMounted, nextTick } from 'vue';
 import { OntologyService } from "../composables";
-import { GraphNode, GraphLink, NodeData } from "../interfaces";
+import { GraphNode, GraphLink } from "../interfaces";
 import Button from 'primevue/button';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -34,7 +49,7 @@ const isLoading = ref(false);
 const nodes = ref<GraphNode[]>([]);
 const links = ref<GraphLink[]>([]);
 const svg = ref<SVGSVGElement | null>(null);
-const selectedNode = ref<NodeData | undefined>();
+const selectedNode = ref<GraphNode | undefined>();
 
 
 const route = useRoute();
@@ -69,7 +84,7 @@ onMounted(async () => {
     isLoading.value = true;
     await nextTick();
     width.value = props.width;
-    height.value = props.height-20;
+    height.value = props.height-100;
 
     const rootResponse = (await OntologyService.getRootDatabaseTree(props.ontology)).data.entries;
     rootResponse.forEach((root: GraphNode) => {
@@ -112,6 +127,30 @@ function drawGraph() {
     if (svg.value) {
         svg.value.innerHTML = '';
 
+        // Add a defs section for arrow markers
+        const defs = d3.select(svg.value)
+            .append("defs");
+
+        // Create a marker for each relationship type dynamically
+        links.value.forEach(link => {
+            // Only create a marker for unique relationship types
+            const markerId = `arrow-${link.relationship}`;
+            if (!defs.select(`#${markerId}`).node()) {
+                const marker = defs.append("marker")
+                    .attr("id", markerId)
+                    .attr("viewBox", "0 -5 10 10")
+                    .attr("refX", 5)
+                    .attr("refY", 0)
+                    .attr("markerWidth", 6)
+                    .attr("markerHeight", 6)
+                    .attr("orient", "auto");
+
+                marker.append("path")
+                    .attr("d", "M0,-5L10,0L0,5") // Arrow shape
+                    .attr("fill", link.relationship === 'subset_of' ? "green" : "#999"); // Set color based on relationship
+            }
+        });
+
         const zoomGroup = d3.select(svg.value)
             .append("g")
             .attr("class", "zoom-group");
@@ -125,25 +164,24 @@ function drawGraph() {
                     })
             );
 
-        // Create links with labels
+        // Create main links
         const linkSelection = zoomGroup
-            .selectAll("line")
+            .selectAll("line.link")
             .data(links.value)
             .join("line")
-            .attr("stroke", "#999")
-            .attr("stroke-opacity", 0.6);
+            .attr("class", "link")
+            .attr("stroke", d => d.relationship === 'subset_of' ? "green" : "#999") // Set color based on relationship
+            .attr("stroke-opacity", 0.6)
+            .attr("marker-end", d => `url(#arrow-${d.relationship})`); // Use dynamic marker for each relationship
 
-        // Create link labels
-        zoomGroup
-            .selectAll("text.link-label")
+        // Create midpoint arrows by adding an invisible segment in the middle
+        const arrowSelection = zoomGroup
+            .selectAll("line.mid-arrow")
             .data(links.value)
-            .join("text")
-            .attr("class", "link-label")
-            .attr("x", (d: any) => (d.source.x + d.target.x) / 2)
-            .attr("y", (d: any) => (d.source.y + d.target.y) / 2)
-            .attr("font-size", "10px")
-            .attr("text-anchor", "middle")
-            .text((d: any) => d.relationship || "");
+            .join("line")
+            .attr("class", "mid-arrow")
+            .attr("stroke-opacity", 0)
+            .attr("marker-end", d => `url(#arrow-${d.relationship})`); // Apply marker dynamically
 
         const nodeSelection = zoomGroup
             .selectAll<SVGGElement, GraphNode>("g")
@@ -177,7 +215,7 @@ function drawGraph() {
 
                     d.isLoaded = true;
                     const children = (await OntologyService.getNodeChildren(d.id)).data.entries;
-                    children.forEach((child: any) => {
+                    children.forEach((child: GraphNode) => {
                         if (!nodes.value.find(node => node.id === child.id)) {
                             let sortedData = orderFields(child);
                             nodes.value.push({
@@ -214,16 +252,36 @@ function drawGraph() {
                 .attr("x2", d => (d.target as GraphNode).x)
                 .attr("y2", d => (d.target as GraphNode).y);
 
-            zoomGroup
-                .selectAll("text.link-label")
-                .attr("x", (d: any) => (d.source.x + d.target.x) / 2)
-                .attr("y", (d: any) => (d.source.y + d.target.y) / 2);
+            // Update the midpoint arrow segment to match link direction
+            arrowSelection
+                .attr("x1", d => {
+                    const midX = ((d.source as GraphNode).x + (d.target as GraphNode).x) / 2;
+                    const angleFactor = ((d.target as GraphNode).x - (d.source as GraphNode).x) * 0.05;
+                    return midX - angleFactor;
+                })
+                .attr("y1", d => {
+                    const midY = ((d.source as GraphNode).y + (d.target as GraphNode).y) / 2;
+                    const angleFactor = ((d.target as GraphNode).y - (d.source as GraphNode).y) * 0.05;
+                    return midY - angleFactor;
+                })
+                .attr("x2", d => {
+                    const midX = ((d.source as GraphNode).x + (d.target as GraphNode).x) / 2;
+                    const angleFactor = ((d.target as GraphNode).x - (d.source as GraphNode).x) * 0.05;
+                    return midX + angleFactor;
+                })
+                .attr("y2", d => {
+                    const midY = ((d.source as GraphNode).y + (d.target as GraphNode).y) / 2;
+                    const angleFactor = ((d.target as GraphNode).y - (d.source as GraphNode).y) * 0.05;
+                    return midY + angleFactor;
+                });
 
             nodeSelection
                 .attr("transform", (d: any) => `translate(${d.x},${d.y})`);
         });
     }
 }
+
+
 function updateGraph() {
     simulation.nodes(nodes.value);
     simulation.force("link").links(links.value);
