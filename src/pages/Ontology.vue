@@ -185,35 +185,6 @@ const downloadCSV = () => {
   }
 };
 
-
-const isValidJsonString = (str: string) => {
-  try {
-    const parsed = JSON.parse(str);
-    return { isValid: true, isArray: Array.isArray(parsed), parsed };
-  } catch (e) {
-    return { isValid: false, isArray: false };
-  }
-};
-
-const isValidLink = (value: string): boolean => {
-  const regex = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
-  return regex.test(value);
-}
-
-function convertToDataTableFormat(jsonData: string) {
-  let parsedJSONData:Record<string, any> = JSON.parse(jsonData);;
-  parsedJSONData = JSON.parse(jsonData);
-
-  const dataTableData = Object.keys(parsedJSONData).map(key => {
-    return {
-      field: key,
-      type: parsedJSONData[key]
-    };
-  });
-
-  return dataTableData;
-}
-
 function goToGraph() {
   const path = `/ontologies/${ontology.value}/graph`;
   const query = selectedNode.value?.key ? { code: selectedNode.value?.key } : {};

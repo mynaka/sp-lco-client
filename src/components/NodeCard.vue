@@ -4,12 +4,24 @@
       v-if="selectedNode!=null">
       <template #title>
         {{ selectedNode.label }}
-        <Button class="ml-2"
-          v-if="selectedNode.data.sample"
-          @click="downloadCSV"
-          label="Download Sample CSV" 
-          severity="info" 
-          rounded/>
+        <div class="flex items-center space-x-2">
+          <Button class="flex ml-2"
+            v-if="selectedNode.data.sample"
+            @click="downloadCSV"
+            label="Download Sample CSV" 
+            severity="info" 
+            rounded/>
+          <FileUpload 
+          mode="basic" 
+          name="converter[]"
+          customUpload
+          accept=".csv" 
+          :maxFileSize="1000000" 
+          @uploader="onUpload"
+          :auto="true" 
+          chooseLabel="Browse"
+          />
+        </div>
       </template>
       <template #content>
         <div v-if="selectedNode && selectedNode.data">

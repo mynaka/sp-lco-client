@@ -64,7 +64,7 @@ export const dataKeys: DataKeys = {
     },
     feat_type: {
         displayName: 'Feature Type',
-        description: 'Type of activity (Binding Site, Active Site)'
+        description: 'Type of interaction (Binding Site, Active Site, etc.)'
     },
     feat_pos: {
         displayName: 'Position',
