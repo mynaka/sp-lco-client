@@ -44,7 +44,7 @@
 <script setup lang="ts">
 import { onMounted, ref, Ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { NodeData, dataKeys } from "../interfaces";
+import { NodeData } from "../interfaces";
 
 import Button from 'primevue/button';
 import Card from 'primevue/card';
@@ -150,40 +150,6 @@ async function onNodeExpand(node: NodeData): Promise<void> {
     }
   }
 }
-
-
-const downloadCSV = () => {
-  try {
-    const sampleData: Record<string, any[]> = JSON.parse(selectedNode.value?.data.sample);
-    const headers = Object.keys(sampleData);
-    const csvRows = [];
-
-    csvRows.push(headers.join(','));
-
-    const maxRows = Math.max(...Object.values(sampleData).map(arr => arr.length));
-
-    for (let i = 0; i < maxRows; i++) {
-      const row = headers.map(header => {
-        return sampleData[header][i] !== undefined ? sampleData[header][i] : '';
-      });
-      csvRows.push(row.join(','));
-    }
-
-    const csvString = csvRows.join('\n');
-
-    const csvBlob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const csvUrl = URL.createObjectURL(csvBlob);
-    const a = document.createElement('a');
-    a.setAttribute('href', csvUrl);
-    a.setAttribute('target', '_blank');
-    a.setAttribute('download', 'sample_data.csv');
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  } catch (error) {
-    console.error('Error parsing or converting to CSV:', error);
-  }
-};
 
 function goToGraph() {
   const path = `/ontologies/${ontology.value}/graph`;

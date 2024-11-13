@@ -91,12 +91,15 @@ onMounted(async () => {
         let sortedData = orderFields(root);
         nodes.value.push({
             id: root.key,
+            key: root.key,
             label: root.label,
             data: sortedData,
             x: Math.random() * props.width,
             y: Math.random() * props.height,
             isLoaded: false,
-            leaf: root.leaf
+            leaf: root.leaf,
+            nodeType: root.nodeType,
+            loading: false
         });
     });
 
@@ -220,12 +223,15 @@ function drawGraph() {
                             let sortedData = orderFields(child);
                             nodes.value.push({
                                 id: child.key,
+                                key: child.key,
                                 label: child.label,
                                 data: sortedData,
                                 x: d.x + (Math.random() - 0.5) * 100,
                                 y: d.y + (Math.random() - 0.5) * 100,
                                 isLoaded: false,
                                 leaf: child.leaf,
+                                nodeType: child.nodeType,
+                                loading: false
                             });
                             links.value.push({ source: child.key, target: d.id, relationship: 'subset_of' });
                         }

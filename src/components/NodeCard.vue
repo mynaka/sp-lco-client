@@ -156,7 +156,6 @@ const props = defineProps<{
   selectedNode: NodeData | undefined;
 }>();
 
-console.log(props.selectedNode);
 const downloadCSV = () => {
   try {
     const sampleData: Record<string, any[]> = JSON.parse(props.selectedNode?.data.sample);
