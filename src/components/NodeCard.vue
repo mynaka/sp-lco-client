@@ -12,6 +12,7 @@
             severity="info" 
             rounded/>
           <FileUpload 
+          v-if="selectedNode.data.sample"
           mode="basic" 
           name="converter[]"
           customUpload
