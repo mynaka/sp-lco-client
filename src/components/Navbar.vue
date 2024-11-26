@@ -259,7 +259,7 @@ import { SearchTerm } from '../interfaces';
 
   // Form handlers
   const onSubmitEntry = async ({ valid }: { valid: boolean }) => {
-    loading.value = true;
+    addEntryLoading.value = true;
     if (valid) {
       const selectedParentsId = selectedParents.value.map(parent => parent.code);
       
@@ -290,7 +290,7 @@ import { SearchTerm } from '../interfaces';
         prefLabel.value = '';
         identifier.value = '';
         selectedParents.value = [];
-        dataFields.value = { key: '', value: '' };
+        dataFields.value = [];
 
         toast.add({
           severity: 'success',
@@ -299,6 +299,14 @@ import { SearchTerm } from '../interfaces';
           life: 3000
         });
       })
+      .catch((error) => {
+        toast.add({
+          severity: 'error',
+          summary: 'Submission Failed',
+          detail: error.response.data.detail,
+          life: 3000
+        });
+      });
     } else {
       toast.add({
         severity: 'error',
@@ -307,7 +315,7 @@ import { SearchTerm } from '../interfaces';
         life: 3000
       });
     }
-    loading.value = false;
+    addEntryLoading.value = false;
   };
 
   // Button handlers
@@ -352,9 +360,7 @@ import { SearchTerm } from '../interfaces';
   const removeSelectedParent = (index: number) => {
     selectedParents.value.splice(index, 1);
   };
-  const dataFields = ref([
-    { key: '', value: '' }
-  ]);
+  const dataFields = ref<any[]>([]);
 
 function addField() {
   dataFields.value.push({ key: '', value: '' });
