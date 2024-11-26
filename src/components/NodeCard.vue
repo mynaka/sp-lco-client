@@ -28,7 +28,7 @@
         <div v-if="selectedNode && selectedNode.data">
         <ul>
           <li v-for="(value, key) in selectedNode.data" :key="key">
-            <strong v-if="key != 'sample'"
+            <strong v-if="key.toString() != 'sample'"
             v-tooltip.bottom="{
               value: dataKeys[key]?.description,
               pt: {
@@ -93,7 +93,7 @@
               </table>
             </template>
 
-            <template v-else-if="isValidJsonString(value).isValid && key != 'sample'">
+            <template v-else-if="isValidJsonString(value).isValid && key.toString() != 'sample'">
               <table border="1" class="table-auto w-full text-left">
                 <thead>
                   <tr>
@@ -110,7 +110,7 @@
               </table>
             </template>
             
-            <template v-else-if="Array.isArray(value) && key !== 'sample'">
+            <template v-else-if="Array.isArray(value) && key.toString() !== 'sample'">
               <div v-for="(item, index) in value" :key="index">
                 <template v-if="isValidLink(item)">
 
@@ -125,7 +125,7 @@
               </div>
             </template>
 
-            <template v-else-if="key !== 'sample'">
+            <template v-else-if="key.toString() !== 'sample'">
               <span v-html="value.replace(/\n/g, '<br>')"></span>
             </template>
           </li>
