@@ -303,7 +303,7 @@ import { SearchTerm } from '../interfaces';
         toast.add({
           severity: 'error',
           summary: 'Submission Failed',
-          detail: error.response.data.detail,
+          detail: error.response?.data?.detail || 'An unexpected error occurred.',
           life: 3000
         });
       });
