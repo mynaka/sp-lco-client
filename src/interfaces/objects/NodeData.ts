@@ -1,12 +1,8 @@
-export interface NodeData {
-    key: string;
-    label: string;
-    data: Record<string, any>;
-    leaf: boolean;
-    loading: boolean;
-    children?: NodeData[];
+import { TreeNode } from "primevue/treenode";
+
+export interface NodeData extends TreeNode {
     isLoaded?: boolean;
-    nodeType: string;
+    nodeType?: string;
 }
 
 export interface GraphNode extends NodeData {
