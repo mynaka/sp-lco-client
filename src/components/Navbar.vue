@@ -259,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, h, ref, watch } from 'vue';
+  import { computed, ref, watch } from 'vue';
   import { useToast } from 'primevue/usetoast';
   import { OntologyService } from '../composables';
   import { Form } from '@primevue/forms';
