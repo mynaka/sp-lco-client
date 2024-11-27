@@ -130,7 +130,7 @@
                 :func="component"
                 />
 
-                <div class="mt-8"><strong>Data:</strong></div>
+                <div class="mt-8"><strong>Data (Optional):</strong></div>
                 <div v-for="(item, index) in dataFields" :key="index" class="flex flex-col gap-2 mb-4 mt-2">
                   <!-- Key Input -->
                   <div class="flex items-center gap-2">
@@ -138,6 +138,14 @@
                       v-model="item.key" 
                       placeholder="Key" 
                       class="w-1/2"
+                    />
+                    
+                    <!-- Dropdown for Type -->
+                    <Select
+                      v-model="item.type" 
+                      :options="['Text', 'List', 'Table Format', 'Table']" 
+                      placeholder="Select Type" 
+                      class="w-1/4"
                     />
 
                     <!-- Remove Button -->
@@ -150,13 +158,82 @@
 
                   <!-- Value TextArea -->
                   <TextArea 
+                    v-if="item.type=='Text'"
                     v-model="item.value" 
                     placeholder="Value" 
                     class="w-full" 
                     rows="3"
                   />
-                </div>
 
+                  <div v-else-if="item.type=='List'" class="flex flex-col gap-2 mb-4 mt-4">
+                    <!-- List -->
+                    <div 
+                      v-if="item.value"
+                      class="flex flex-wrap gap-2 mb-2"
+                    >
+                      <div 
+                        v-for="(itemContent, index) in item.value" 
+                        :key="index" 
+                        class="flex items-center gap-2 mb-2"
+                      >
+                        <div class="flex-grow flex items-center gap-1 border rounded px-2 py-1 bg-gray-100">
+                          <span class="truncate">{{ itemContent }}</span>
+                        </div>
+                        <button 
+                          class="text-red-500 hover:text-red-700 font-bold"
+                          @click="removeItemFromDataList(item.value, index)"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- Input field and button on the next row -->
+                    <div class="flex flex-row gap-2 mt-2">
+                      <FloatLabel variant="on" class="flex-grow">
+                        <InputText 
+                          class="w-full" 
+                          type="text" 
+                          id="id" 
+                          v-model="listText" 
+                        />
+                        <label for="id">Add Item on the List</label>
+                      </FloatLabel>
+
+                      <Button
+                        class="w-auto"
+                        label="Add to List" 
+                        @click="addToDataList(item.value, listText)" 
+                      />
+                    </div>
+                  </div>
+
+                  <div  v-else-if="item.type=='Table Format'">
+                    <DataTable :value="item.value" editMode="cell" @cell-edit-complete="onCellEditComplete"
+                      :pt="{
+                          table: { style: 'min-width: 50rem' },
+                          column: {
+                              bodycell: ({ state }: any) => ({
+                                  class: [{ '!py-0': state['d_editing'] }]
+                              })
+                          }
+                      }"
+                    >
+                      <Column v-for="col of tableFormatCols" :key="col.field" :field="col.field" :header="col.header" style="width: 25%">
+                        <template #body="{ data, field }">
+                            {{ data[field] }}
+                        </template>
+                        <template #editor="{ data, field }">
+                          <InputText v-model="data[field]" autofocus fluid />
+                        </template>
+                      </Column>
+                    </DataTable>
+                    <div class="mt-4 flex justify-end gap-2">
+                      <Button label="Add Row" icon="pi pi-plus" @click="addTableRow(item.value)" />
+                    </div>
+                  </div>
+                  <div class="col-span-3 bg-gray-400 h-[2px]"></div>
+                </div>
               <Button 
                 label="Add Data" 
                 severity="success"
@@ -182,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref } from 'vue';
+  import { computed, h, ref, watch } from 'vue';
   import { useToast } from 'primevue/usetoast';
   import { OntologyService } from '../composables';
   import { Form } from '@primevue/forms';
@@ -191,7 +268,9 @@
   import SearchBar from './SearchBar.vue';
 
   import Button from 'primevue/button';
+  import Column from 'primevue/column'
   import Dialog from 'primevue/dialog';
+  import DataTable from 'primevue/datatable';
   import InputText from 'primevue/inputtext';
   import FloatLabel from 'primevue/floatlabel';
   import Password from 'primevue/password';
@@ -223,6 +302,7 @@ import { SearchTerm } from '../interfaces';
   const prefLabel = ref<string>('');
   const identifier = ref<string>('');
   const selectedParents = ref<SearchTerm[]>([]);
+  const listText = ref<string>('');
 
   // Auth stores
   const userStore = useUserStore();
@@ -236,6 +316,19 @@ import { SearchTerm } from '../interfaces';
     { name: 'Species', code: 'Species' },
     { name: 'Strain', code: 'Strain' },
     { name: 'Protein', code: 'Protein' },
+  ]);
+
+  interface ColumnType {
+    field: string;
+    header: string;
+  }
+  /**
+   * columns of the Table Type input for Data
+   */
+  const tableFormatCols = ref<ColumnType[]>([
+    { field: "field", header: "Field" },
+    { field: "type", header: "Data Type" },
+    { field: "desc", header: "Description" }
   ]);
 
   // Form validation
@@ -262,28 +355,29 @@ import { SearchTerm } from '../interfaces';
     addEntryLoading.value = true;
     if (valid) {
       const selectedParentsId = selectedParents.value.map(parent => parent.code);
-      
       const formattedData = {
         data: {
           prefLabel: prefLabel.value,
           identifier: identifier.value,
           ...Object.fromEntries(
             dataFields.value.map((field) => {
-              let parsedValue;
+              let formattedValue;
 
               try {
-                parsedValue = JSON.parse(field.value);
+                const parsedValue = JSON.parse(field.value);
+                formattedValue = JSON.stringify(parsedValue);
               } catch (e) {
-                parsedValue = field.value;
+                formattedValue = JSON.stringify(field.value);
               }
 
-              return [field.key, parsedValue];
+              return [field.key, formattedValue];
             })
           ),
         },
-        parents: selectedParentsId, 
-        typeOfEntry: entryType.value.name
+        parents: selectedParentsId, // Selected parent IDs
+        typeOfEntry: entryType.value.name, // Entry type name
       };
+      console.log(formattedData);
       await OntologyService.createEntry(formattedData, token.value).then((_data) => {
         addClassIsVisible.value = false;
         entryType.value = null;
@@ -362,13 +456,61 @@ import { SearchTerm } from '../interfaces';
   };
   const dataFields = ref<any[]>([]);
 
-function addField() {
-  dataFields.value.push({ key: '', value: '' });
-}
+  function addField() {
+    dataFields.value.push({ key: '', type: '', value: '' });
+  }
 
-function removeField(index: number) {
-  dataFields.value.splice(index, 1);
-}
+  function removeField(index: number) {
+    dataFields.value.splice(index, 1);
+  }
+
+  const addToDataList = (item: string[], text: string) => {
+    if (item && text) {
+      item.push(text);
+    }
+  };
+
+  const removeItemFromDataList = (itemList: string[], index: number) => {
+    itemList.splice(index, 1);
+  }
+
+  // DataTable
+  const onCellEditComplete = (event: { data: any; newValue: any; field: any; }) => {
+    let { data, newValue, field } = event;
+
+    data[field] = newValue;
+  };
+
+  const addTableRow = (item: any) => {
+    if (!item || Array.isArray(item)) {
+      const newRow = tableFormatCols.value.reduce((obj, col) => {
+        obj[col.field] = "Click to Edit Value";
+        return obj;
+      }, {} as Record<string, any>);
+
+      item.push(newRow);
+    }
+  };
+
+  watch(
+    () => dataFields.value.map(item => item.type),
+    (newValues, oldValues) => {
+      newValues.forEach((newType, index) => {
+        if (newType !== oldValues[index]) {
+          if (newType == 'Table Format') {
+            dataFields.value[index].value = [{
+              field: "Click to Edit Value",
+              type: "Click to Edit Value",
+              desc: "Click to Edit Value"
+            }];
+            dataFields.value[index].key = 'format';
+          } else if (newType == 'Text') dataFields.value[index].value = "";
+          else if (newType == 'List') dataFields.value[index].value = [];
+
+        }
+      });
+    }
+  );
 </script>
 
 
