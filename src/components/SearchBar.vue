@@ -14,11 +14,11 @@
                 <div class="flex items-center justify-between w-full">
                 <div class="flex-1 truncate">
                     {{ 
-                    searchComponent === 'Nav' && slotProps.option.name.length > 120 
-                    ? slotProps.option.name.slice(0, 120) + '...' 
-                    : searchComponent === 'Home' && slotProps.option.name.length > 30 
-                    ? slotProps.option.name.slice(0, 30) + '...' 
-                    : slotProps.option.name 
+                        searchComponent === 'Nav' && slotProps.option.name.length > 120 
+                        ? slotProps.option.name.slice(0, 120) + '...' 
+                        : searchComponent === 'Home' && slotProps.option.name.length > 30 
+                        ? slotProps.option.name.slice(0, 30) + '...' 
+                        : slotProps.option.name 
                     }}
                 </div>
                 <div>

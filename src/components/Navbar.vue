@@ -50,7 +50,7 @@
                 <!-- ADD CLASS -->
                 <Button
                   class="w-full px-2 py-2 hover:bg-gray-200 text-sm"
-                  label="Add Class"
+                  label="Add Entry"
                   severity="secondary"
                   text
                   @click="addClassIsVisible=true"
@@ -71,7 +71,7 @@
     </div>
     <!-- DIALOG -->
     <Dialog class="flex w-1/2" v-model:visible="addClassIsVisible" modal header="Add Class">
-      <div v-if="isUploadVisible">
+      <div>
         <Form 
           :initial-values="formInitialValues" 
           :resolver="resolver" 
@@ -124,124 +124,214 @@
                 </button>
               </div>
             </div>
-              <SearchBar
-                @select-parent="handleSelectedNode"
-                :floatMessage="addParentMsg"
-                :func="component"
+            <SearchBar
+              @select-parent="handleSelectedNode"
+              :floatMessage="addParentMsg"
+              :func="component"
+              />
+
+            <div class="mt-8"><strong>Data (Optional):</strong></div>
+            <div v-for="(item, index) in dataFields" :key="index" class="flex flex-col gap-2 mb-4 mt-2">
+              <!-- Key Input -->
+              <div class="flex items-center gap-2">
+                <InputText
+                  v-model="item.key" 
+                  placeholder="Key" 
+                  class="w-1/2"
+                  :disabled="disableRemoveButton(index)"
+                />              
+                <!-- Dropdown for Type -->
+                <Select
+                  v-model="item.type" 
+                  :options="availableOptions[index]" 
+                  placeholder="Select Type" 
+                  class="w-1/4"
+                  :disabled="disableRemoveButton(index)"
                 />
 
-                <div class="mt-8"><strong>Data (Optional):</strong></div>
-                <div v-for="(item, index) in dataFields" :key="index" class="flex flex-col gap-2 mb-4 mt-2">
-                  <!-- Key Input -->
-                  <div class="flex items-center gap-2">
-                    <InputText 
-                      v-model="item.key" 
-                      placeholder="Key" 
-                      class="w-1/2"
-                    />
-                    
-                    <!-- Dropdown for Type -->
-                    <Select
-                      v-model="item.type" 
-                      :options="['Text', 'List', 'Table Format', 'Table']" 
-                      placeholder="Select Type" 
-                      class="w-1/4"
-                    />
+                <!-- Remove Button -->
+                <Button 
+                  label="Remove Data"
+                  class="other-button"
+                  @click="removeField(index)" 
+                  :disabled="disableRemoveButton(index)" 
+                  type="button"
+                />
+              </div>
 
-                    <!-- Remove Button -->
-                    <Button 
-                      label="Remove Data" 
-                      severity="danger"
-                      @click="removeField(index)" 
-                    />
-                  </div>
-
-                  <!-- Value TextArea -->
-                  <TextArea 
-                    v-if="item.type=='Text'"
-                    v-model="item.value" 
-                    placeholder="Value" 
-                    class="w-full" 
-                    rows="3"
-                  />
-
-                  <div v-else-if="item.type=='List'" class="flex flex-col gap-2 mb-4 mt-4">
-                    <!-- List -->
-                    <div 
-                      v-if="item.value"
-                      class="flex flex-wrap gap-2 mb-2"
+              <!-- TEXT -->
+              <TextArea 
+                v-if="item.type=='Text'"
+                v-model="item.value" 
+                placeholder="Value" 
+                class="w-full" 
+                rows="3"
+              />
+              
+              <!-- LIST -->
+              <div v-else-if="item.type=='List'" class="flex flex-col gap-2 mb-4 mt-4">
+                <div 
+                  v-if="item.value"
+                  class="flex flex-wrap gap-2 mb-2"
+                >
+                  <div 
+                    v-for="(itemContent, index) in item.value" 
+                    :key="index" 
+                    class="flex items-center gap-2 mb-2"
+                  >
+                    <div class="flex-grow flex items-center gap-1 border rounded px-2 py-1 bg-gray-100">
+                      <span class="truncate">{{ itemContent }}</span>
+                    </div>
+                    <button 
+                      type="button"
+                      class="text-red-500 hover:text-red-700 font-bold"
+                      @click="removeItemFromDataList(item.value, index)"
                     >
-                      <div 
-                        v-for="(itemContent, index) in item.value" 
-                        :key="index" 
-                        class="flex items-center gap-2 mb-2"
-                      >
-                        <div class="flex-grow flex items-center gap-1 border rounded px-2 py-1 bg-gray-100">
-                          <span class="truncate">{{ itemContent }}</span>
-                        </div>
-                        <button 
-                          class="text-red-500 hover:text-red-700 font-bold"
-                          @click="removeItemFromDataList(item.value, index)"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-
-                    <!-- Input field and button on the next row -->
-                    <div class="flex flex-row gap-2 mt-2">
-                      <FloatLabel variant="on" class="flex-grow">
-                        <InputText 
-                          class="w-full" 
-                          type="text" 
-                          id="id" 
-                          v-model="listText" 
-                        />
-                        <label for="id">Add Item on the List</label>
-                      </FloatLabel>
-
-                      <Button
-                        class="w-auto"
-                        label="Add to List" 
-                        @click="addToDataList(item.value, listText)" 
-                      />
-                    </div>
+                      ✕
+                    </button>
                   </div>
-
-                  <div  v-else-if="item.type=='Table Format'">
-                    <DataTable :value="item.value" editMode="cell" @cell-edit-complete="onCellEditComplete"
-                      :pt="{
-                          table: { style: 'min-width: 50rem' },
-                          column: {
-                              bodycell: ({ state }: any) => ({
-                                  class: [{ '!py-0': state['d_editing'] }]
-                              })
-                          }
-                      }"
-                    >
-                      <Column v-for="col of tableFormatCols" :key="col.field" :field="col.field" :header="col.header" style="width: 25%">
-                        <template #body="{ data, field }">
-                            {{ data[field] }}
-                        </template>
-                        <template #editor="{ data, field }">
-                          <InputText v-model="data[field]" autofocus fluid />
-                        </template>
-                      </Column>
-                    </DataTable>
-                    <div class="mt-4 flex justify-end gap-2">
-                      <Button label="Add Row" icon="pi pi-plus" @click="addTableRow(item.value)" />
-                    </div>
-                  </div>
-                  <div class="col-span-3 bg-gray-400 h-[2px]"></div>
                 </div>
+
+                <!-- ADD TO LIST -->
+                <div class="flex flex-row gap-2 mt-2">
+                  <FloatLabel variant="on" class="flex-grow">
+                    <InputText 
+                      class="w-full" 
+                      type="text" 
+                      id="id" 
+                      v-model="listText" 
+                    />
+                    <label for="id">Add Item on the List</label>
+                  </FloatLabel>
+
+                  <Button
+                    class="w-auto"
+                    label="Add to List" 
+                    @click="addToDataList(item.value, listText)" 
+                    type="button"
+                  />
+                </div>
+              </div>
+
+              <!-- TABLE FORMAT -->
+              <div  v-else-if="item.type=='Table Format'">
+                <DataTable :value="item.value" editMode="cell" @cell-edit-complete="onCellEditComplete"
+                  :pt="{
+                      table: { style: 'min-width: 50rem' },
+                      column: {
+                          bodycell: ({ state }: any) => ({
+                              class: [{ '!py-0': state['d_editing'] }]
+                          })
+                      }
+                  }"
+                >
+                  <Column v-for="col of tableFormatCols" :key="col.field" :field="col.field" :header="col.header" style="width: 25%">
+                    <template #body="{ data, field }">
+                        {{ data[field] }}
+                    </template>
+                    <template #editor="{ data, field }">
+                      <InputText v-model="data[field]" :disabled="disableRemoveButton(index)" autofocus fluid />
+                    </template>
+                  </Column>
+                </DataTable>
+                <div class="mt-4 flex justify-end gap-2">
+                  <Button label="Add Row" 
+                  @click="addTableRow(item.value, 'format')" 
+                  v-if="!disableRemoveButton(index)"/>
+                </div>
+              </div>
+
+              <!-- SAMPLE DATA -->
+              <div  v-else-if="item.type=='Sample Data'">
+                <DataTable :value="item.value" editMode="cell" @cell-edit-complete="onCellEditComplete"
+                  :pt="{
+                      table: { style: 'min-width: 50rem' },
+                      column: {
+                          bodycell: ({ state }: any) => ({
+                              class: [{ '!py-0': state['d_editing'] }]
+                          })
+                      }
+                  }"
+                >
+                  <Column v-for="col of sampleTableCols" :key="col.field" :field="col.field" :header="col.header" style="width: 25%">
+                    <template #body="{ data, field }">
+                        {{ data[field] }}
+                    </template>
+                    <template #editor="{ data, field }">
+                      <InputText v-model="data[field]" :disabled="disableRemoveButton(index)" autofocus fluid />
+                    </template>
+                  </Column>
+                </DataTable>
+                <div class="mt-4 flex justify-end gap-2">
+                  <Button label="Add Row" 
+                  @click="addTableRow(item.value, 'sample')" 
+                  v-if="!disableRemoveButton(index)"/>
+                </div>
+              </div>
+
+              <!-- PROTEIN SEQUENCE -->
+              <div  v-else-if="item.type=='Protein Sequence'">
+                <DataTable :value="item.value" editMode="cell" @cell-edit-complete="onCellEditComplete"
+                  :pt="{
+                      table: { style: 'min-width: 50rem' },
+                      column: {
+                          bodycell: ({ state }: any) => ({
+                              class: [{ '!py-0': state['d_editing'] }]
+                          })
+                      }
+                  }"
+                >
+                  <Column v-for="col of tableProteinSequenceCols" :key="col.field" :field="col.field" :header="col.header" style="width: 25%">
+                    <template #body="{ data, field }">
+                        {{ data[field] }}
+                    </template>
+                    <template #editor="{ data, field }">
+                      <InputText v-model="data[field]" autofocus fluid />
+                    </template>
+                  </Column>
+                </DataTable>
+              </div>
+
+              <!-- FEATURES -->
+              <div  v-else-if="item.type=='Site Features'">
+                <DataTable :value="item.value" editMode="cell" @cell-edit-complete="onCellEditComplete"
+                  :pt="{
+                      table: { style: 'min-width: 50rem' },
+                      column: {
+                          bodycell: ({ state }: any) => ({
+                              class: [{ '!py-0': state['d_editing'] }]
+                          })
+                      }
+                  }"
+                >
+                  <Column v-for="col of featureCols" :key="col.field" :field="col.field" :header="col.header" style="width: 25%">
+                    <template #body="{ data, field }">
+                        {{ data[field] }}
+                    </template>
+                    <template #editor="{ data, field }">
+                      <InputText v-model="data[field]" autofocus fluid />
+                    </template>
+                  </Column>
+                </DataTable>
+                <div class="mt-4 flex justify-end gap-2">
+                  <Button label="Add Row" 
+                  @click="addTableRow(item.value, 'features')" 
+                  v-if="!disableRemoveButton(index)"/>
+                </div>
+              </div>
+
+              <div class="col-span-3 bg-gray-400 h-[2px]"></div>
+            </div>
               <Button 
-                label="Add Data" 
+                label="Add Data"
+                class="user-button"
                 severity="success"
-                @click="addField" 
+                @click="addField"
+                type="button"
               />
             </div>
           </div>
-          <Button type="submit" label="Submit" :loading="addEntryLoading" class="w-full" />
+          <Button type="submit" label="Submit" :loading="addEntryLoading" class="w-full user-button" />
         </Form>
 
         <!-- <FileUpload 
@@ -259,7 +349,7 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, ref, watch } from 'vue';
+  import { computed, Ref, ref, watch } from 'vue';
   import { useToast } from 'primevue/usetoast';
   import { OntologyService } from '../composables';
   import { Form } from '@primevue/forms';
@@ -280,23 +370,56 @@
 
 
   import { useUserStore } from '../stores/userStore';
-import { SearchTerm } from '../interfaces';
+  import { SearchTerm } from '../interfaces';
 
   // PrimeVue Toast
   const toast = useToast();
   const component = ref("Nav");
   const addParentMsg = ref("Search for Parent Nodes")
 
-  // Refs
-  const loginToggle = ref<any>(null);
-  const profileToggleRef = ref<any>(null);
-  const addClassIsVisible = ref<boolean>(false);
-  const isUploadVisible = ref<boolean>(true);
+  // Navbar Profile Reactive Refs
+  /**
+   * A reactive reference that controls the \<Login\> Popover state if no user is logged in.
+   * @type {Ref\<any\>}
+   */
+  const loginToggle: Ref<any> = ref(null);
+  /**
+   * A reactive reference that controls the \<Profile\> Popover state if a user is logged in.
+   * @type {Ref\<any\>}
+   */
+  const profileToggleRef: Ref<any> = ref(null);
+  /**
+   * A reactive reference that controls the \<Add Class\> Card visibility state.
+   * @type {Ref\<boolean\>}
+   */
+  const addClassIsVisible: Ref<boolean> = ref(false);
 
   const username = ref<string>('');
   const password = ref<string>('');
   const loading = ref<boolean>(false);
   const addEntryLoading = ref<boolean>(false);
+
+  /**
+   * Reactive variable for available Select options in the Data section
+   */
+  const firstTableFormatIndex = ref<number | null>(null);
+  const availableOptions = computed(() => {
+    const options = ['Text', 'List', 'Table Format', 'Protein Sequence', 'Sample Data', 'Site Features'];
+    
+    return dataFields.value.map((field, index) => {
+      if (field.type === 'Table Format' && firstTableFormatIndex.value === null) {
+        firstTableFormatIndex.value = index;
+      }
+      
+      // Remove table format if already in form
+      const disabledOptions = 
+        (firstTableFormatIndex.value == index || firstTableFormatIndex.value == null) ? options.filter(option => option !== 'Sample Data')
+        : options.filter(option => option !== 'Table Format');
+
+      return disabledOptions;
+    });
+  });
+
 
   const entryType = ref();
   const prefLabel = ref<string>('');
@@ -328,32 +451,76 @@ import { SearchTerm } from '../interfaces';
   const tableFormatCols = ref<ColumnType[]>([
     { field: "field", header: "Field" },
     { field: "type", header: "Data Type" },
-    { field: "desc", header: "Description" }
+    { field: "desc", header: "Description (Optional)" }
   ]);
+  const tableProteinSequenceCols = ref<ColumnType[]>([
+    { field: "field", header: "Field" },
+    { field: "value", header: "Value" },
+  ]);
+  const featureCols = ref<ColumnType[]>([
+  { field: "type", header: "Type" },
+  { field: "position", header: "Position/s" },
+  { field: "desc", header: "Additional Information)" }
+  ]);
+  const sampleTableCols = computed<ColumnType[]>(() => {
+    const sampleField = dataFields.value.find(field => field.type === 'Table Format');
+
+    if (sampleField) {
+      return sampleField.value.map((fieldValue: any) => ({
+        field: fieldValue.field,
+        header: fieldValue.field,
+      }));
+    }
+
+    // Return an empty array if no 'sample' key is found.
+    return [];
+  });
 
   // Form validation
   const formInitialValues = ref({
     entry_type: { name: '', code: '' }
   });
 
-  const resolver = ref(zodResolver(
-    z.object({
-      entry_type: z.union([
-        z.object({
-          name: z.string().min(1, 'Entry type is required.')
-        }),
-        z.any().refine((_val) => false, { message: 'Entry type is required.' })
-      ]),
-      pref_label: z.string().min(1, { message: 'Preferred Label is required.' }),
-      id: z.string().min(1, { message: 'Identifier is required.' })
-
-    })
-  ));
+  const resolver = ref(
+    zodResolver(
+      z.object({
+        entry_type: z.union([
+          z.object({
+            name: z.string().min(1, "Entry type is required."),
+          }),
+          z.any().refine((_val) => false, { message: "Entry type is required." }),
+        ]),
+        pref_label: z.string().min(1, { message: "Preferred Label is required." }),
+        id: z.string().min(1, { message: "Identifier is required." })
+      })
+    )
+  );
 
   // Form handlers
   const onSubmitEntry = async ({ valid }: { valid: boolean }) => {
     addEntryLoading.value = true;
-    if (valid) {
+
+    if(dataFields.value.map(f => f.key).some((key, i, arr) => arr.indexOf(key) !== i)) {
+      toast.add({
+        severity: 'error',
+        summary: 'Duplicate Data',
+        detail: 'Data entry keys must be unique',
+        life: 3000
+      });
+    } else if (
+      dataFields.value.some(f => 
+        f.key === '' || 
+        f.type === '' || 
+        (Array.isArray(f.value) && f.value.length === 0) || 
+        (typeof f.value === 'string' && f.value === '')
+    )){
+      toast.add({
+        severity: 'error',
+        summary: 'Missing or Invalid Data',
+        detail: 'All Data fields must be valid',
+        life: 3000
+      });
+    } else if (valid) {
       const selectedParentsId = selectedParents.value.map(parent => parent.code);
       const formattedData = {
         data: {
@@ -374,10 +541,9 @@ import { SearchTerm } from '../interfaces';
             })
           ),
         },
-        parents: selectedParentsId, // Selected parent IDs
-        typeOfEntry: entryType.value.name, // Entry type name
+        parents: selectedParentsId,
+        typeOfEntry: entryType.value.name,
       };
-      console.log(formattedData);
       await OntologyService.createEntry(formattedData, token.value).then((_data) => {
         addClassIsVisible.value = false;
         entryType.value = null;
@@ -417,7 +583,7 @@ import { SearchTerm } from '../interfaces';
     loginToggle.value.toggle(event);
   };
 
-  const profileToggle = (event: any) => {
+  const profileToggle = (event: MouseEvent) => {
     profileToggleRef.value.toggle(event);
   };
 
@@ -449,7 +615,6 @@ import { SearchTerm } from '../interfaces';
 
   const handleSelectedNode = (node: SearchTerm) => {
     selectedParents.value.push(node);
-    console.log(selectedParents.value);
   }
   const removeSelectedParent = (index: number) => {
     selectedParents.value.splice(index, 1);
@@ -481,14 +646,28 @@ import { SearchTerm } from '../interfaces';
     data[field] = newValue;
   };
 
-  const addTableRow = (item: any) => {
+  const addTableRow = (item: any, table: string) => {
+    console.log("E")
     if (!item || Array.isArray(item)) {
-      const newRow = tableFormatCols.value.reduce((obj, col) => {
-        obj[col.field] = "Click to Edit Value";
-        return obj;
-      }, {} as Record<string, any>);
-
-      item.push(newRow);
+      if (table == 'format') {
+        const newRow = tableFormatCols.value.reduce((obj, col) => {
+          obj[col.field] = "Click to Edit Value";
+          return obj;
+        }, {} as Record<string, any>);
+        item.push(newRow);
+      } else if (table == 'sample') {
+        const newRow = sampleTableCols.value.reduce((obj, col) => {
+          obj[col.field] = "Click to Edit Value";
+          return obj;
+        }, {} as Record<string, any>);
+        item.push(newRow);
+      } else if (table == 'features') {
+        const newRow = featureCols.value.reduce((obj, col) => {
+          obj[col.field] = "Click to Edit Value";
+          return obj;
+        }, {} as Record<string, any>);
+        item.push(newRow);
+      }
     }
   };
 
@@ -497,27 +676,64 @@ import { SearchTerm } from '../interfaces';
     (newValues, oldValues) => {
       newValues.forEach((newType, index) => {
         if (newType !== oldValues[index]) {
+          if (oldValues[index] == 'Table Format') firstTableFormatIndex.value = null;
           if (newType == 'Table Format') {
             dataFields.value[index].value = [{
               field: "Click to Edit Value",
               type: "Click to Edit Value",
-              desc: "Click to Edit Value"
+              desc: ""
             }];
             dataFields.value[index].key = 'format';
-          } else if (newType == 'Text') dataFields.value[index].value = "";
-          else if (newType == 'List') dataFields.value[index].value = [];
+          } else if (newType == 'Text') {
+            dataFields.value[index].value = "";
+            dataFields.value[index].key = '';
+          } else if (newType == 'List') {
+            dataFields.value[index].value = [];
+            dataFields.value[index].key = '';
+          } else if (newType == 'Protein Sequence') {
+            dataFields.value[index].value = [
+              {
+                field: "length",
+                value: "Enter length of sequence"
+              }, {
+                field: "mass(Da)",
+                value: "Enter mass in Daltons"
+              }, {
+                field: "sequence",
+                value: "Enter protein sequence"
+              }
+            ];
+            dataFields.value[index].key = 'sequence';
+          } else if (newType == 'Sample Data') {
+            const sampleData = sampleTableCols.value.map(col => ({
+              [col.field]: "Click to Edit Value",
+            }));
+            const processedSampleData = Object.assign({}, ...sampleData);
+            dataFields.value[index].value = [processedSampleData];
+          } else if (newType == "Site Features") {
+            dataFields.value[index].value = [{
+              type: "Click to Edit Value",
+              position: "Click to Edit Value",
+              desc: ""
+            }];
+          }
 
         }
       });
     }
   );
+  const disableRemoveButton = (index: number) => {
+    const hasSampleTable = dataFields.value.some(item => item.type === 'Sample Data');
+    
+    return hasSampleTable && dataFields.value[index].type === 'Table Format';
+  };
 </script>
 
 
 <style scoped>
 .login-button {
   background-color: rgb(133, 0, 55) !important;
-  border: 2px solid rgb(167, 69, 110) !important;
+  border: 2px solid rgb(133, 0, 55) !important;
   transition: background-color 0.3s, color 0.3s, border-color 0.3s;
 }
 
@@ -537,5 +753,17 @@ import { SearchTerm } from '../interfaces';
   background-color: white !important;
   color: rgb(13, 96, 59) !important;
   border-color: rgb(13, 96, 59) !important;
+}
+
+.other-button {
+  background-color: rgb(255, 173, 13) !important;
+  border: 2px solid rgb(255, 173, 13) !important;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.other-button:hover {
+  background-color: white !important;
+  color: rgb(255, 173, 13) !important;
+  border-color: rgb(255, 173, 13) !important;
 }
 </style>
