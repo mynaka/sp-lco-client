@@ -238,6 +238,11 @@
                   <Button label="Add Row" 
                   @click="addTableRow(item.value, 'format')" 
                   v-if="!disableRemoveButton(index)"/>
+
+                  <Button label="Remove Row"
+                  class="other-button"
+                  @click="removeTableRow(index)" 
+                  v-if="!disableRemoveButton(index)"/>
                 </div>
               </div>
 
@@ -265,6 +270,11 @@
                 <div class="mt-4 flex justify-end gap-2">
                   <Button label="Add Row" 
                   @click="addTableRow(item.value, 'sample')" 
+                  v-if="!disableRemoveButton(index)"/>
+
+                  <Button label="Remove Row"
+                  class="other-button"
+                  @click="removeTableRow(index)" 
                   v-if="!disableRemoveButton(index)"/>
                 </div>
               </div>
@@ -316,6 +326,11 @@
                 <div class="mt-4 flex justify-end gap-2">
                   <Button label="Add Row" 
                   @click="addTableRow(item.value, 'features')" 
+                  v-if="!disableRemoveButton(index)"/>
+
+                  <Button label="Remove Row"
+                  class="other-button"
+                  @click="removeTableRow(index)" 
                   v-if="!disableRemoveButton(index)"/>
                 </div>
               </div>
@@ -458,9 +473,9 @@
     { field: "value", header: "Value" },
   ]);
   const featureCols = ref<ColumnType[]>([
-  { field: "type", header: "Type" },
-  { field: "position", header: "Position/s" },
-  { field: "desc", header: "Additional Information)" }
+    { field: "type", header: "Type" },
+    { field: "position", header: "Position/s" },
+    { field: "desc", header: "Additional Information" }
   ]);
   const sampleTableCols = computed<ColumnType[]>(() => {
     const sampleField = dataFields.value.find(field => field.type === 'Table Format');
@@ -530,11 +545,21 @@
             dataFields.value.map((field) => {
               let formattedValue;
 
-              try {
-                const parsedValue = JSON.parse(field.value);
-                formattedValue = JSON.stringify(parsedValue);
-              } catch (e) {
-                formattedValue = JSON.stringify(field.value);
+              if (typeof field.value === 'object' && field.value !== null) {
+                //If JSON arr
+                if (Array.isArray(field.value)) {
+                  formattedValue = field.value.map((element: any) =>
+                    typeof element === 'object' && element !== null
+                      ? JSON.stringify(element)
+                      : element
+                  );
+                } else {
+                  // if JSON (not array)
+                  formattedValue = JSON.stringify(field.value);
+                }
+              } else {
+                // Other stuff
+                formattedValue = field.value;
               }
 
               return [field.key, formattedValue];
@@ -670,6 +695,24 @@
       }
     }
   };
+
+  /**
+   * Removes the last value of an array within a dataFields value
+   * @param index Index of the dataFields element to have the value removed
+   */
+  function removeTableRow(index: number) {
+    const field = dataFields.value[index];
+
+    if (field && Array.isArray(field.value)) {
+      if (field.value.length > 0) {
+        field.value.pop();
+      } else {
+        console.warn("No rows to remove in the selected field.");
+      }
+    } else {
+      console.error("The selected field does not have a value array.");
+    }
+  }
 
   watch(
     () => dataFields.value.map(item => item.type),

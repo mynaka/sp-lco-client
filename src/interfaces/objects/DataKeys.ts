@@ -81,5 +81,13 @@ export const dataKeys: DataKeys = {
     sequence: {
         displayName: 'Sequence',
         description: 'Amino Acid Sequence Information of the protein.'
+    },
+    site_features: {
+        displayName: 'Site Features',
+        description: 'Interactions of the proteins(e.g. catalytic activity) within its sequence.'
+    },
+    pheno_variant_features: {
+        displayName: 'Phenotype and Variant Features',
+        description: 'Site Features regarding Diseases and Phenotypes associated with the protein.'
     }
 };

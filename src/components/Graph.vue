@@ -62,22 +62,23 @@ let simulation: any;
 let isQuerying = true;
 
 const orderFields = (node: GraphNode): Record<string, any> => {
-  const orderedData: Record<string, any> = {};
-  const preferredKeys = ["prefLabel", "identifier", "notation", "altLabel", "description", "function", "sequence", "features", "references"];
-  
-  preferredKeys.forEach(key => {
+    const orderedData: Record<string, any> = {};
+    const preferredKeys = ["prefLabel", "identifier", "notation", "altLabel", "description", "function", "sequence", "site_features", "pheno_variant_features", "features", "references"];
+
+
+    preferredKeys.forEach(key => {
     if (key in node.data) {
-      orderedData[key] = node.data[key];
+        orderedData[key] = node.data[key];
     }
-  });
+    });
 
-  Object.keys(node.data).forEach(key => {
+    Object.keys(node.data).forEach(key => {
     if (!(key in orderedData)) {
-      orderedData[key] = node.data[key];
+        orderedData[key] = node.data[key];
     }
-  });
+    });
 
-  return orderedData;
+    return orderedData;
 }
 
 onMounted(async () => {

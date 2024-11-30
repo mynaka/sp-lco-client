@@ -45,69 +45,26 @@
             </strong> 
 
             <template v-if="isValidJsonString(value).isArray">
-              <table border="1" class="table-auto w-full text-left">
-                <thead>
-                  <tr>
-                    <th class="px-4 py-2"
-                    v-tooltip.bottom="{
-                    value: dataKeys['feat_type'].description,
-                    pt: {
-                      arrow: {
-                        style: {
-                          borderBottomColor: '#7b1113' // Matches tooltip background color
-                        }
-                      }
-                    }
-                  }">{{ dataKeys['feat_type'].displayName }}<span class="info"></span>:</th>
-                    <th class="px-4 py-2"
-                    v-tooltip.bottom="{
-                    value: dataKeys['feat_pos'].description,
-                    pt: {
-                      arrow: {
-                        style: {
-                          borderBottomColor: '#7b1113' // Matches tooltip background color
-                        }
-                      }
-                    }
-                    }">{{ dataKeys['feat_pos'].displayName }}<span class="info"></span>:</th>
-                    <th class="px-4 py-2"
-                      v-tooltip.bottom="{
-                      value: dataKeys['feat_desc'].description,
-                      pt: {
-                        arrow: {
-                          style: {
-                            borderBottomColor: '#7b1113' // Matches tooltip background color
-                          }
-                        }
-                      }
-                      }">{{ dataKeys['feat_desc'].displayName }}<span class="info"></span>:</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(feature, index) in isValidJsonString(value).parsed" :key="index">
-                    <td class="border px-4 py-2">{{ feature.type }}</td>
-                    <td class="border px-4 py-2">{{ feature.positions }}</td>
-                    <td class="border px-4 py-2">{{ feature.desc }}</td>
-                  </tr>
-                </tbody>
-              </table>
+              <!-- TABLE -->
+              <DataTable :value="isValidJsonString(value).row">
+                <Column
+                  v-for="col in getJSONArrayCols(value).columns"
+                  :key="col.field"  
+                  :field="col.field"
+                  :header="col.header"
+                />
+              </DataTable>
             </template>
 
             <template v-else-if="isValidJsonString(value).isValid && key.toString() != 'sample'">
-              <table border="1" class="table-auto w-full text-left">
-                <thead>
-                  <tr>
-                    <th class="px-4 py-2">Field</th>
-                    <th class="px-4 py-2">Type</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="item in convertToDataTableFormat(value)" :key="item.field">
-                    <td class="border px-4 py-2">{{ item.field }}</td>
-                    <td class="border px-4 py-2">{{ item.type }}</td>
-                  </tr>
-                </tbody>
-              </table>
+              <DataTable :value="value">
+                <Column
+                  v-for="col in getJSONArrayCols(value).columns"
+                  :key="col.field"
+                  :field="col.field"
+                  :header="col.header"
+                />
+              </DataTable>
             </template>
             
             <template v-else-if="Array.isArray(value) && key.toString() !== 'sample'">
@@ -145,6 +102,8 @@
 import { NodeData, dataKeys } from "../interfaces";
 import Card from 'primevue/card';
 import Button from 'primevue/button';
+import Column from 'primevue/column';
+import DataTable from "primevue/datatable";
 import FileUpload from "primevue/fileupload";
 import { useToast } from 'primevue/usetoast';
 
@@ -190,13 +149,33 @@ const downloadCSV = () => {
   }
 };
 
-
-const isValidJsonString = (str: string) => {
+/**
+ * Check if strArray can be converted to a JSON array. If yes, return parsed array
+ * 
+ * @param strArray 
+ */
+const isValidJsonString = (strArray: any) => {
+  // If strArray is not an array, return an error result
+  if (!Array.isArray(strArray)) {
+    return {
+        isValid: false,
+        isArray: false,
+      }
+  }
   try {
-    const parsed = JSON.parse(str);
-    return { isValid: true, isArray: Array.isArray(parsed), parsed };
-  } catch (e) {
-    return { isValid: false, isArray: false };
+    const parsedArray = strArray.map((str: string) => JSON.parse(str));
+    const isArray = Array.isArray(parsedArray) && parsedArray.every(item => typeof item === "object");
+
+    return {
+      isValid: true,
+      isArray: isArray,
+      row: parsedArray
+    };
+  } catch (error) {
+    return {
+      isValid: false,
+      isArray: false,
+    };
   }
 };
 
@@ -205,19 +184,34 @@ const isValidLink = (value: string): boolean => {
   return regex.test(value);
 }
 
-function convertToDataTableFormat(jsonData: string) {
-  let parsedJSONData:Record<string, any> = JSON.parse(jsonData);;
-  parsedJSONData = JSON.parse(jsonData);
+/**
+ * Get Columns for data that needs to be displayed in DataTable
+ * 
+ * @param array Array of DataTable JSON
+ */
+const getJSONArrayCols = (array: string[]) => {
+  try {
+    // Parse each string in the array into a JSON object
+    const parsedArray = array.map((item: string) => JSON.parse(item));
 
-  const dataTableData = Object.keys(parsedJSONData).map(key => {
-    return {
-      field: key,
-      type: parsedJSONData[key]
-    };
-  });
+    // Extract column definitions from the keys of the first object
+    const columns =
+      parsedArray.length > 0
+        ? Object.keys(parsedArray[0]).map((key) => ({
+            field: key,
+            header: key.charAt(0).toUpperCase() + key.slice(1),
+          }))
+        : [];
 
-  return dataTableData;
-}
+    console.log("Parsed Array:", parsedArray);
+    console.log("Columns:", columns);
+
+    return { data: parsedArray, columns };
+  } catch (error) {
+    console.error("Error parsing JSON array:", error);
+    return { data: [], columns: [] }; // Return empty data and columns in case of error
+  }
+};
 
 const onUpload = async (event: any): Promise<any> => {
   const file = event.files[0];
