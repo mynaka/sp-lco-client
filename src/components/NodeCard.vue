@@ -25,6 +25,12 @@
         </div>
       </template>
       <template #content>
+        <ScrollPanel class="w-auto h-auto max-h-[80vh]"
+          :dt="{
+            bar: {
+              background: 'black'
+            }
+          }">
         <div v-if="selectedNode && selectedNode.data">
         <ul>
           <li v-for="(value, key) in selectedNode.data" :key="key">
@@ -88,6 +94,7 @@
           </li>
         </ul>
       </div>
+    </ScrollPanel>
       </template>
     </Card>
     <Card class="mx-auto my-auto h-fit shadow-lg" v-else>
@@ -105,6 +112,7 @@ import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from "primevue/datatable";
 import FileUpload from "primevue/fileupload";
+import ScrollPanel from "primevue/scrollpanel";
 import { useToast } from 'primevue/usetoast';
 
 import { OntologyService } from "../composables/services/ontologies";
@@ -202,9 +210,6 @@ const getJSONArrayCols = (array: string[]) => {
             header: key.charAt(0).toUpperCase() + key.slice(1),
           }))
         : [];
-
-    console.log("Parsed Array:", parsedArray);
-    console.log("Columns:", columns);
 
     return { data: parsedArray, columns };
   } catch (error) {

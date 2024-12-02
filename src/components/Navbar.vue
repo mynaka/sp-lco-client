@@ -453,6 +453,7 @@
     { name: 'Term', code: 'Term' },
     { name: 'Species', code: 'Species' },
     { name: 'Strain', code: 'Strain' },
+    { name: 'Serotype', code: 'Serotype' },
     { name: 'Protein', code: 'Protein' },
   ]);
 

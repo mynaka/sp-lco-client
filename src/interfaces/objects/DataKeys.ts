@@ -4,20 +4,6 @@ export interface DataKeyInfo {
 }
   
 export interface DataKeys {
-    prefLabel: DataKeyInfo;
-    identifier: DataKeyInfo;
-    notation: DataKeyInfo;
-    description: DataKeyInfo;
-    output: DataKeyInfo;
-    format: DataKeyInfo;
-    altLabel: DataKeyInfo;
-    refs: DataKeyInfo;
-    features: DataKeyInfo;
-    feat_type: DataKeyInfo;
-    feat_pos: DataKeyInfo;
-    feat_desc: DataKeyInfo;
-    function: DataKeyInfo;
-
     [key: string]: DataKeyInfo;
 }
 
@@ -89,5 +75,13 @@ export const dataKeys: DataKeys = {
     pheno_variant_features: {
         displayName: 'Phenotype and Variant Features',
         description: 'Site Features regarding Diseases and Phenotypes associated with the protein.'
+    },
+    optimal_ph: {
+        displayName: 'Optimal pH',
+        description: 'Optimal pH for protein activity.'
+    },
+    activity_regulation: {
+        displayName: 'Activity Regulation',
+        description: 'Regulatory Mechanisms for enzyms with components.'
     }
 };

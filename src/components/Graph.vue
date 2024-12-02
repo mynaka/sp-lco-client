@@ -63,7 +63,7 @@ let isQuerying = true;
 
 const orderFields = (node: GraphNode): Record<string, any> => {
     const orderedData: Record<string, any> = {};
-    const preferredKeys = ["prefLabel", "identifier", "notation", "altLabel", "description", "function", "sequence", "site_features", "pheno_variant_features", "features", "references"];
+    const preferredKeys = ["prefLabel", "identifier", "notation", "altLabel", "description", "function", "activity_regulation", "optimal_ph", "sequence", "site_features", "pheno_variant_features", "features", "references"];
 
 
     preferredKeys.forEach(key => {

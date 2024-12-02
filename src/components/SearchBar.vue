@@ -75,10 +75,9 @@
     function handleItemClick(option: SearchTerm) {
         if (searchComponent.value == 'Nav') emit('select-parent', option);
         else {
-            const ontologyLabel = getButtonLabel(option).toLocaleLowerCase();
+            let ontologyLabel = getButtonLabel(option).toLocaleLowerCase();
+            if (ontologyLabel == 'uniprotkb') ontologyLabel = 'ncbi';
             const code = option.code;
-
-            console.log(`Redirecting to /ontologies/${ontologyLabel}/classes?code=${code}`);
 
             router.push({
             path: `/ontologies/${ontologyLabel}/classes`,
