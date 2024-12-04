@@ -33,14 +33,14 @@
           }">
         <div v-if="selectedNode && selectedNode.data">
         <ul>
-          <li v-for="(value, key) in selectedNode.data" :key="key">
+          <li v-for="(value, key) in selectedNode.data" :key="key" class="mt-4">
             <strong v-if="key.toString() != 'sample'"
             v-tooltip.bottom="{
               value: dataKeys[key]?.description,
               pt: {
                 arrow: {
                   style: {
-                    borderBottomColor: '#7b1113' // Matches tooltip background color
+                    borderBottomColor: '#7b1113'
                   }
                 }
               }
@@ -50,6 +50,7 @@
               <span class="info"></span>:
             </strong> 
 
+            <!-- Array of JSON -->
             <template v-if="isValidJsonString(value).isArray">
               <!-- TABLE -->
               <DataTable :value="isValidJsonString(value).row">
@@ -62,6 +63,7 @@
               </DataTable>
             </template>
 
+            <!--JSON-->
             <template v-else-if="isValidJsonString(value).isValid && key.toString() != 'sample'">
               <DataTable :value="value">
                 <Column
@@ -73,6 +75,7 @@
               </DataTable>
             </template>
             
+            <!-- Array of Strings -->
             <template v-else-if="Array.isArray(value) && key.toString() !== 'sample'">
               <div v-for="(item, index) in value" :key="index">
                 <template v-if="isValidLink(item)">
@@ -88,6 +91,7 @@
               </div>
             </template>
 
+            <!--String or Numbers-->
             <template v-else-if="key.toString() !== 'sample'">
               <span v-html="value.replace(/\n/g, '<br>')"></span>
             </template>

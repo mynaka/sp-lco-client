@@ -174,7 +174,6 @@ function getNodeMap(nodes: NodeData[]): Map<string, NodeData> {
 }
 
 onMounted(async () => {
-  isLoadingTree.value = true;
   loadOntologies();
   try {
     if (query.value) {
@@ -194,13 +193,13 @@ onMounted(async () => {
         }
       }
       selectedNode.value = getNodeMap(nodes.value).get(query.value);
-
-
+      isLoadingTree.value = false;
+    } else {
+      isLoadingTree.value = false;
     }
   } catch (error) {
     console.error("Error loading ancestors or nodes:", error);
   }
-  isLoadingTree.value = false;
 });
 </script>
 <style>
