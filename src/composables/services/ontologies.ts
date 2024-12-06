@@ -89,7 +89,6 @@ export const OntologyService = {
         token: string
     ): Promise<AxiosResponse<any, any>> => {
         try {
-            console.log(jsonData);
             return axios.put(`${SERVER_DOMAIN}/entry/update`, jsonData, {
                 headers: {
                     "Content-Type": "application/json",

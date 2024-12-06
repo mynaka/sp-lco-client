@@ -37,7 +37,9 @@
           </Card>
       </div>
     </div>
-    <NodeCard :selectedNode="selectedNode" />
+    <NodeCard 
+    :selectedNode="selectedNode"
+    @update-entry="updateTreeEmit" />
   </div>
 </template>
 
@@ -171,6 +173,22 @@ function getNodeMap(nodes: NodeData[]): Map<string, NodeData> {
 
   traverse(nodes);
   return map;
+}
+
+const updateTreeEmit = (node: NodeData) => {
+  selectedNode.value = node;
+  const existingNode = nodeMap.get(node.data.identifier);
+
+  if (existingNode) {
+    Object.assign(existingNode, node);
+
+    console.log("Updated node:", existingNode);
+    console.log("Node map:", nodeMap);
+
+    selectedNode.value = existingNode;
+  } else {
+    console.log(`Node with identifier ${node.data.identifier} not found in the map.`);
+  }
 }
 
 onMounted(async () => {

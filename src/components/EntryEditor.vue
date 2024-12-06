@@ -304,6 +304,8 @@
             identifier?: string;
             selectedParents?: SearchTerm[];
             dataFields?: any[];
+            leaf?: Boolean;
+            nodeType?: string;
             operation: 'create' | 'update';
     }>(),
     {
@@ -453,7 +455,7 @@
                 parents: selectedParentsId,
                 typeOfEntry: entryType.value?.name,
             };
-            console.log(props.operation);
+
             if (props.operation == 'create'){
                 await OntologyService.createEntry(formattedData, token.value).then((_data) => {
                     entryType.value = undefined;
@@ -479,19 +481,19 @@
                 });
             } else if (props.operation == 'update') {
                 await OntologyService.updateEntry(formattedData, token.value).then((_data) => {
-                    entryType.value = undefined;
-                    prefLabel.value = '';
-                    identifier.value = '';
-                    selectedParents.value = [];
-                    dataFields.value = [];
-
                     toast.add({
                         severity: 'success',
                         summary: 'Form is submitted.',
                         detail: 'Your form was successfully submitted.',
                         life: 3000
                     });
-                    emit('submit-entry');
+                    emit('submit-entry', { 
+                        ...formattedData, 
+                        parents: [...selectedParents.value], 
+                        leaf:props.leaf, 
+                        nodeType: props.nodeType,
+                        label: formattedData.data.prefLabel
+                    });
                 })
                 .catch((error) => {
                     toast.add({
@@ -546,7 +548,6 @@
     };
 
     const addTableRow = (item: any, table: string) => {
-        console.log("E")
         if (!item || Array.isArray(item)) {
         if (table == 'format') {
             const newRow = tableFormatCols.value.reduce((obj, col) => {

@@ -126,6 +126,8 @@
       :identifier="propsData.identifier"
       :selectedParents="propsData.selectedParents"
       :dataFields="propsData.dataFields"
+      :leaf="selectedNode?.leaf"
+      :nodeType="selectedNode?.nodeType"
       :operation="'update'"
       @submit-entry="submissionChanges"
     />
@@ -148,6 +150,7 @@ import { OntologyService } from "../composables/services/ontologies";
 import { computed, Ref, ref } from "vue";
 import EntryEditor from "./EntryEditor.vue";
 
+const emit = defineEmits(['update-entry']);
 const toast = useToast();
 const userStore = useUserStore();
 const isLoggedIn = ref(userStore.isAuthenticated);
@@ -270,7 +273,7 @@ const onUpload = async (event: any): Promise<any> => {
       detail: 'Your file will now download shortly.', 
       life: 3000 
     });
-    console.log('Response received:', response);
+
     const blob = new Blob([response.data], { type: 'text/csv' });
 
     const link = document.createElement('a');
@@ -343,14 +346,16 @@ const propsData = computed(() => {
       code: parent.code,
     })) || [],
     dataFields,
-    altLabel: selectedNode!.altLabel, // if needed
-    refs: selectedNode!.refs, // if needed
-    type: selectedNode!.type, // if needed
+    altLabel: selectedNode!.altLabel,
+    refs: selectedNode!.refs,
+    type: selectedNode!.type,
   };
 });
 
-const submissionChanges = () => {
+const submissionChanges = (node: NodeData) => {
   editClassIsVisible.value = false;
+
+  emit('update-entry', node);
 }
 </script>
 
