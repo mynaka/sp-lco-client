@@ -5,23 +5,29 @@
       <template #title>
         {{ selectedNode.label }}
         <div class="flex items-center space-x-2">
-          <Button class="flex ml-2"
+          <Button class="text-sm px-3 py-1" 
             v-if="selectedNode.data.sample"
             @click="downloadCSV"
             label="Download Sample CSV" 
             severity="info" 
-            rounded/>
+            rounded />
+
           <FileUpload 
-          v-if="selectedNode.data.sample"
-          mode="basic" 
-          name="converter[]"
-          customUpload
-          accept=".csv" 
-          :maxFileSize="1000000" 
-          @uploader="onUpload"
-          :auto="true" 
-          chooseLabel="Browse"
-          />
+            v-if="selectedNode.data.sample"
+            mode="basic" 
+            name="converter[]"
+            customUpload
+            accept=".csv" 
+            :maxFileSize="1000000" 
+            @uploader="onUpload"
+            :auto="true" 
+            chooseLabel="Browse" />
+
+          <Button class="other-button text-sm px-3 py-1" 
+            v-if="isLoggedIn"
+            @click="editClassIsVisible=true"
+            label="Edit Entry" 
+            rounded />
         </div>
       </template>
       <template #content>
@@ -93,7 +99,12 @@
 
             <!--String or Numbers-->
             <template v-else-if="key.toString() !== 'sample'">
-              <span v-html="value.replace(/\n/g, '<br>')"></span>
+              <template v-if="isValidLink(value)">
+                <a :href="value" target="_blank" class="text-blue-600 hover:underline">
+                  &nbsp;&nbsp;&nbsp;&nbsp;{{ value }}
+                </a>
+              </template>
+              <span v-else v-html="value.replace(/\n/g, '<br>')"></span>
             </template>
           </li>
         </ul>
@@ -107,21 +118,40 @@
       </template>
     </Card>
   </div>
+  <!-- DIALOG -->
+  <Dialog class="flex w-1/2" v-model:visible="editClassIsVisible" modal header="Update Class">
+    <EntryEditor
+      :entryType="propsData.entryType"
+      :prefLabel="propsData.prefLabel"
+      :identifier="propsData.identifier"
+      :selectedParents="propsData.selectedParents"
+      :dataFields="propsData.dataFields"
+      :operation="'update'"
+      @submit-entry="submissionChanges"
+    />
+  </Dialog>
 </template>
   
 <script setup lang="ts">
-import { NodeData, dataKeys } from "../interfaces";
+import { NodeData, SearchTerm, dataKeys } from "../interfaces";
 import Card from 'primevue/card';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
+import Dialog from 'primevue/dialog';
 import DataTable from "primevue/datatable";
 import FileUpload from "primevue/fileupload";
 import ScrollPanel from "primevue/scrollpanel";
 import { useToast } from 'primevue/usetoast';
+import { useUserStore } from '../stores/userStore';
 
 import { OntologyService } from "../composables/services/ontologies";
+import { computed, Ref, ref } from "vue";
+import EntryEditor from "./EntryEditor.vue";
 
 const toast = useToast();
+const userStore = useUserStore();
+const isLoggedIn = ref(userStore.isAuthenticated);
+const editClassIsVisible: Ref<boolean> = ref(false);
 
 // Define props with the correct types
 const props = defineProps<{
@@ -252,5 +282,112 @@ const onUpload = async (event: any): Promise<any> => {
     console.error('Error during file processing:', error);
   });
 };
+
+const propsData = computed(() => {
+  const selectedNode = props.selectedNode;
+
+  const getType = (value: any) => {
+    if (typeof value === 'string') return 'Text';
+    if (Array.isArray(value)) {
+      // Case when the array consists of strings, not JSON objects
+      if (value.every((item: any) => typeof item === 'string' && !item.startsWith('{'))) {
+        return 'List';
+      }
+
+      // Case when the array consists of JSON strings
+      try {
+        const parsedItem = JSON.parse(value[0]);  // Try to parse the first item
+        if (parsedItem.type && parsedItem.position) {
+          return 'Site Features';
+        } else if (parsedItem.field && parsedItem.value) {
+          return 'Protein Sequence';
+        } else if (parsedItem.field && parsedItem.type) {
+          return 'Table Format';
+        }
+      } catch (e) {
+        return 'Sample Data';
+      }
+    }
+
+    return 'Sample Data'; // Default type for other data types
+  };
+
+  const dataFields = Object.entries(selectedNode!.data || {})
+  .filter(([key]) => key !== 'prefLabel' && key !== 'identifier' && key !== 'type')
+  .map(([key, value]) => {
+    const type = getType(value);
+
+    if (Array.isArray(value) && value.every((item: string) => item.startsWith('{'))) {
+      const parsedValue = value.map((item: string) => JSON.parse(item));
+      return {
+        key,
+        value: parsedValue,
+        type,
+      };
+    }
+
+    return {
+      key,
+      value,
+      type,
+    };
+  })
+  .flat();
+
+  return {
+    entryType: { name: selectedNode!.nodeType, code: selectedNode!.nodeType },
+    prefLabel: selectedNode!.label,
+    identifier: selectedNode!.key,
+    selectedParents: selectedNode!.parents?.map((parent: SearchTerm) => ({
+      name: parent.name,
+      code: parent.code,
+    })) || [],
+    dataFields,
+    altLabel: selectedNode!.altLabel, // if needed
+    refs: selectedNode!.refs, // if needed
+    type: selectedNode!.type, // if needed
+  };
+});
+
+const submissionChanges = () => {
+  editClassIsVisible.value = false;
+}
 </script>
-  
+
+<style scoped>
+.login-button {
+  background-color: rgb(133, 0, 55) !important;
+  border: 2px solid rgb(133, 0, 55) !important;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.login-button:hover {
+  background-color: white !important;
+  color: rgb(133, 0, 55) !important;
+  border-color: rgb(133, 0, 55) !important;
+}
+
+.user-button {
+  background-color: rgb(13, 96, 59) !important;
+  border: 2px solid rgb(13, 96, 59) !important;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.user-button:hover {
+  background-color: white !important;
+  color: rgb(13, 96, 59) !important;
+  border-color: rgb(13, 96, 59) !important;
+}
+
+.other-button {
+  background-color: rgb(255, 173, 13) !important;
+  border: 2px solid rgb(255, 173, 13) !important;
+  transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+}
+
+.other-button:hover {
+  background-color: white !important;
+  color: rgb(255, 173, 13) !important;
+  border-color: rgb(255, 173, 13) !important;
+}
+</style>

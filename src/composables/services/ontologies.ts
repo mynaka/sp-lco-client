@@ -82,5 +82,23 @@ export const OntologyService = {
             console.error("Error uploading file:", error);
             throw error;
         }
+    },
+
+    updateEntry: async (
+        jsonData: object,
+        token: string
+    ): Promise<AxiosResponse<any, any>> => {
+        try {
+            console.log(jsonData);
+            return axios.put(`${SERVER_DOMAIN}/entry/update`, jsonData, {
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+            });
+        } catch (error) {
+            console.error("Error uploading file:", error);
+            throw error;
+        }
     }
 };
