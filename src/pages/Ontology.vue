@@ -177,14 +177,12 @@ function getNodeMap(nodes: NodeData[]): Map<string, NodeData> {
 
 const updateTreeEmit = (node: NodeData) => {
   selectedNode.value = node;
-  const existingNode = nodeMap.get(node.data.identifier);
-
+  let existingNode = nodeMap.get(node.data.identifier);
+  console.log(existingNode);
+  console.log(node);
   if (existingNode) {
-    Object.assign(existingNode, node);
-
-    console.log("Updated node:", existingNode);
-    console.log("Node map:", nodeMap);
-
+    existingNode = Object.assign(existingNode, node);
+    
     selectedNode.value = existingNode;
   } else {
     console.log(`Node with identifier ${node.data.identifier} not found in the map.`);

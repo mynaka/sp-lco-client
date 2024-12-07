@@ -361,6 +361,7 @@
         { name: 'Strain', code: 'Strain' },
         { name: 'Serotype', code: 'Serotype' },
         { name: 'Protein', code: 'Protein' },
+        { name: 'Table', code: 'Table' },
     ]);
     const tableProteinSequenceCols = ref<ColumnType[]>([
         { field: "field", header: "Field" },
@@ -393,7 +394,6 @@
         return [];
     });
 
-    // Form handlers
     const onSubmitEntry = async () => {
         addEntryLoading.value = true;
 
@@ -425,32 +425,30 @@
             const selectedParentsId = selectedParents.value.map(parent => parent.code);
             const formattedData = {
                 data: {
-                prefLabel: prefLabel.value,
-                identifier: identifier.value,
-                ...Object.fromEntries(
-                    dataFields.value.map((field) => {
-                    let formattedValue;
+                    prefLabel: prefLabel.value,
+                    identifier: identifier.value,
+                    ...Object.fromEntries(
+                        dataFields.value.map((field) => {
+                        let formattedValue;
 
-                    if (typeof field.value === 'object' && field.value !== null) {
-                        //If JSON arr
-                        if (Array.isArray(field.value)) {
-                        formattedValue = field.value.map((element: any) =>
-                            typeof element === 'object' && element !== null
-                            ? JSON.stringify(element)
-                            : element
-                        );
+                        if (typeof field.value === 'object' && field.value !== null) {
+                            //If JSON arr
+                            if (Array.isArray(field.value)) {
+                            formattedValue = field.value.map((element: any) =>
+                                typeof element === 'object' && element !== null
+                                ? JSON.stringify(element)
+                                : element
+                            );
+                            } else {
+                                formattedValue = JSON.stringify(field.value);
+                            }
                         } else {
-                        // if JSON (not array)
-                        formattedValue = JSON.stringify(field.value);
+                            formattedValue = field.value;
                         }
-                    } else {
-                        // Other stuff
-                        formattedValue = field.value;
-                    }
 
-                    return [field.key, formattedValue];
-                    })
-                ),
+                        return [field.key, formattedValue];
+                        })
+                    ),
                 },
                 parents: selectedParentsId,
                 typeOfEntry: entryType.value?.name,
@@ -487,6 +485,7 @@
                         detail: 'Your form was successfully submitted.',
                         life: 3000
                     });
+                    formattedData.data.type = entryType.value?.name;
                     emit('submit-entry', { 
                         ...formattedData, 
                         parents: [...selectedParents.value], 

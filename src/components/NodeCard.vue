@@ -21,7 +21,7 @@
             :maxFileSize="1000000" 
             @uploader="onUpload"
             :auto="true" 
-            chooseLabel="Browse" />
+            chooseLabel="Upload File" />
 
           <Button class="other-button text-sm px-3 py-1" 
             v-if="isLoggedIn"
@@ -163,23 +163,29 @@ const props = defineProps<{
 
 const downloadCSV = () => {
   try {
-    const sampleData: Record<string, any[]> = JSON.parse(props.selectedNode?.data.sample);
-    const headers = Object.keys(sampleData);
+    console.log(props.selectedNode?.data.sample);
+    const rawSampleData: Record<string, string> = props.selectedNode?.data.sample;
+
+    // Parse the nested JSON strings into objects
+    const parsedData = Object.values(rawSampleData).map((value) => JSON.parse(value));
+
+    // Extract headers from the first parsed object
+    const headers = Object.keys(parsedData[0]);
     const csvRows = [];
 
+    // Add headers to CSV rows
     csvRows.push(headers.join(','));
 
-    const maxRows = Math.max(...Object.values(sampleData).map(arr => arr.length));
+    // Add rows for each parsed object
+    parsedData.forEach((row) => {
+      const csvRow = headers.map((header) => (row[header] !== undefined ? row[header] : ''));
+      csvRows.push(csvRow.join(','));
+    });
 
-    for (let i = 0; i < maxRows; i++) {
-      const row = headers.map(header => {
-        return sampleData[header][i] !== undefined ? sampleData[header][i] : '';
-      });
-      csvRows.push(row.join(','));
-    }
-
+    // Convert rows to CSV string
     const csvString = csvRows.join('\n');
 
+    // Create and download the CSV file
     const csvBlob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const csvUrl = URL.createObjectURL(csvBlob);
     const a = document.createElement('a');
@@ -354,7 +360,6 @@ const propsData = computed(() => {
 
 const submissionChanges = (node: NodeData) => {
   editClassIsVisible.value = false;
-
   emit('update-entry', node);
 }
 </script>
