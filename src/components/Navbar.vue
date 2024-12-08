@@ -73,6 +73,7 @@
     <Dialog class="flex w-1/2" v-model:visible="addClassIsVisible" modal header="Add Class">
       <EntryEditor
         :operation="'create'"
+        @submit-entry="submissionChanges"
       />
     </Dialog>
   </nav>
@@ -155,6 +156,10 @@
   const logout = () => {
     userStore.logout();
   };
+
+  const submissionChanges = (_node: any) => {
+    addClassIsVisible.value = false;
+  }
 </script>
 
 
