@@ -293,7 +293,6 @@
     import TextArea from 'primevue/textarea';
     import Column from 'primevue/column';
     import DataTable from 'primevue/datatable';
-    import Message from 'primevue/message';
 
     import SearchBar from './SearchBar.vue';
     import { OntologyService } from '../composables';
