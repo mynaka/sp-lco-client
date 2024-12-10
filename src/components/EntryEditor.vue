@@ -56,14 +56,7 @@
 
         <div class="mt-8"><strong>Data (Optional):</strong></div>
         <div v-for="(item, index) in dataFields" :key="index" class="flex flex-col gap-2 mb-4 mt-2">
-            <!-- Key Input -->
             <div class="flex items-center gap-2">
-            <InputText
-                v-model="item.key" 
-                placeholder="Key" 
-                class="w-1/2"
-                :disabled="disableRemoveButton(index)"
-            />              
             <!-- Dropdown for Type -->
             <Select
                 v-model="item.type" 
@@ -72,11 +65,18 @@
                 class="w-1/4"
                 :disabled="disableRemoveButton(index)"
             />
+            <!-- Key Input -->
+            <InputText
+                v-model="item.key" 
+                placeholder="Key" 
+                class="w-3/4"
+                :disabled="disableRemoveButton(index)"
+            />              
 
             <!-- Remove Button -->
             <Button 
                 label="Remove Data"
-                class="other-button"
+                class="other-button w-1/4"
                 @click="removeField(index)" 
                 :disabled="disableRemoveButton(index)" 
                 type="button"
@@ -119,20 +119,22 @@
             <!-- ADD TO LIST -->
             <div class="flex flex-row gap-2 mt-2">
                 <FloatLabel variant="on" class="flex-grow">
-                <InputText 
-                    class="w-full" 
-                    type="text" 
-                    id="id" 
-                    v-model="listText" 
-                />
-                <label for="id">Add Item on the List</label>
+                    <InputText 
+                        class="w-full" 
+                        type="text" 
+                        id="id" 
+                        v-model="listText" 
+                    />
+                    <label for="id">
+                        {{ item.key === 'altLabel' ? 'Add synonyms or alternative names here' : 'Add Item on the List' }}
+                    </label>
                 </FloatLabel>
 
                 <Button
-                class="w-auto"
-                label="Add to List" 
-                @click="addToDataList(item.value, listText)" 
-                type="button"
+                    class="w-auto"
+                    label="Add to List" 
+                    @click="addToDataList(item.value, listText)" 
+                    type="button"
                 />
             </div>
             </div>
@@ -291,6 +293,7 @@
     import TextArea from 'primevue/textarea';
     import Column from 'primevue/column';
     import DataTable from 'primevue/datatable';
+    import Message from 'primevue/message';
 
     import SearchBar from './SearchBar.vue';
     import { OntologyService } from '../composables';
@@ -530,9 +533,8 @@
     }
 
     const addToDataList = (item: string[], text: string) => {
-        if (item && text) {
-        item.push(text);
-        }
+        if (item && text) item.push(text);
+        listText.value = '';
     };
 
     const removeItemFromDataList = (itemList: string[], index: number) => {

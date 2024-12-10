@@ -26,6 +26,7 @@
             </template>
             <template v-else>
               <Tree :value="nodes"
+                v-model:selectionKeys="selected"
                 @node-expand="onNodeExpand"
                 @nodeSelect="onNodeSelect"
                 :expanded-keys="expandedKeys"
@@ -63,6 +64,7 @@ const query = ref();
 const isLoadingTree = ref(true);
 const ontology = ref((route.params.ontology as string).toUpperCase());
 
+const selected = ref();
 const selectedNode = ref<NodeData>();
 const expandedKeys: Ref<Record<string, boolean>> = ref({});;
 let nodeMap: Map<string, NodeData>;
@@ -209,6 +211,7 @@ onMounted(async () => {
         }
       }
       selectedNode.value = getNodeMap(nodes.value).get(query.value);
+      selected.value = { [query.value]: true}
       isLoadingTree.value = false;
     } else {
       isLoadingTree.value = false;

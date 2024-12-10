@@ -3,7 +3,7 @@
     <div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
       <a href="/" class="flex items-center space-x-3 rtl:space-x-reverse">
         <img src="../assets/logo/uplb-official-logo.png" class="h-8 md:h-10 lg:h-12" alt="UPLB Logo" />
-        <span class="self-center text-l md:text-xl lg:text-2xl font-semibold whitespace-nowrap">Liver Cancer Ontologies</span>
+        <span class="self-center text-l md:text-xl lg:text-2xl font-semibold whitespace-nowrap">Ontology Lookup Application</span>
       </a>
       <div class="hidden w-full md:block md:w-auto" id="navbar-solid-bg">
         <ul

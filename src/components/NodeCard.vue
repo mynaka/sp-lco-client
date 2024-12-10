@@ -5,13 +5,12 @@
       <template #title>
         {{ selectedNode.label }}
         <div class="flex items-center space-x-2">
-          <Button class="text-sm px-3 py-1" 
-            v-if="selectedNode.data.sample"
-            @click="downloadCSV"
-            label="Download Sample CSV" 
-            severity="info" 
+          <Button class="other-button text-sm px-3 py-1" 
+            v-if="isLoggedIn"
+            @click="editClassIsVisible=true"
+            label="Edit Entry" 
             rounded />
-
+          <br>
           <FileUpload 
             v-if="selectedNode.data.sample"
             mode="basic" 
@@ -21,13 +20,7 @@
             :maxFileSize="1000000" 
             @uploader="onUpload"
             :auto="true" 
-            chooseLabel="Upload File" />
-
-          <Button class="other-button text-sm px-3 py-1" 
-            v-if="isLoggedIn"
-            @click="editClassIsVisible=true"
-            label="Edit Entry" 
-            rounded />
+            chooseLabel="Click to upload a CSV file containing the dataset of terms" />
         </div>
       </template>
       <template #content>
@@ -57,8 +50,16 @@
             </strong> 
 
             <!-- Array of JSON -->
-            <template v-if="isValidJsonString(value).isArray">
+            <template v-if="isValidJsonString(value).isArray && key.toString() != 'sample'">
               <!-- TABLE -->
+              <br>  
+              <Button class="text-sm px-3 py-1" 
+                v-if="selectedNode.data.sample && key.toString() == 'format'"
+                @click="downloadCSV"
+                label="Download Sample CSV" 
+                severity="info" 
+                rounded />
+               
               <DataTable :value="isValidJsonString(value).row">
                 <Column
                   v-for="col in getJSONArrayCols(value).columns"
@@ -82,7 +83,7 @@
             </template>
             
             <!-- Array of Strings -->
-            <template v-else-if="Array.isArray(value) && key.toString() !== 'sample'">
+            <template v-else-if="Array.isArray(value) && key.toString() != 'sample'">
               <div v-for="(item, index) in value" :key="index">
                 <template v-if="isValidLink(item)">
 
@@ -98,7 +99,7 @@
             </template>
 
             <!--String or Numbers-->
-            <template v-else-if="key.toString() !== 'sample'">
+            <template v-else-if="key.toString() != 'sample'">
               <template v-if="isValidLink(value)">
                 <a :href="value" target="_blank" class="text-blue-600 hover:underline">
                   &nbsp;&nbsp;&nbsp;&nbsp;{{ value }}

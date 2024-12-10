@@ -9,7 +9,7 @@
         <img src="../assets/logo/uplb-official-logo.png" width="200" alt="UPLB Logo" />
       </div>
       <div class="text-center sm:text-2xl text-sm mt-2">
-        Liver Cancer Ontology Lookup Service
+        Term Ontology Lookup Service
       </div>
     </template>
     <template #content>
@@ -23,30 +23,39 @@
       <div class="flex justify-center items-center">Look for terms in the following Ontologies</div>
       <div class="flex justify-center items-center">
         <Button 
-          class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
-          severity="info"
-          @click="redirectToOntology('mpo')"
-        ><strong>MPO</strong>
+          class="h-16 w-1/3 mt-5 flex items-center justify-center"
+          severity="warn"
+          @click="redirectToOntology('omp')"
+        ><strong>Ontology of Microbial Phenotypes</strong>
         </Button>
       </div>
       <div class="flex justify-center items-center">
-      <Button 
-        class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
-        severity="contrast"
-        @click="redirectToOntology('ncbi')"
-        outlined
-      >
-      <strong>NCBI Pathogen Ontology  </strong>
-      </Button>
+        <Button 
+          class="h-16 w-1/3 mt-5 flex items-center justify-center"
+          severity="contrast"
+          @click="redirectToOntology('ncbi')"
+          outlined
+        >
+        <strong>NCBI Pathogen/Gene Ontology  </strong>
+        </Button>
       </div>
       <div class="flex justify-center items-center">
-      <Button 
-        class="h-16 w-32 sm:h-20 sm:w-40 mt-5 flex items-center justify-center"
-        @click="redirectToOntology('table')"
-      >
-      <strong>Tables</strong>
-      </Button>
-    </div>
+        <Button 
+          class="h-16 w-1/3 mt-5 flex items-center justify-center"
+          @click="redirectToOntology('doid')"
+          severity="info"
+        >
+        <strong>Disease Ontology</strong>
+        </Button>
+      </div>
+      <div class="flex justify-center items-center">
+        <Button 
+          class="h-16 w-1/3 mt-5 flex items-center justify-center"
+          @click="redirectToOntology('table')"
+        >
+        <strong>Convert Datasets to Controlled Vocabularies</strong>
+        </Button>
+      </div>
     </template>
   </Card>
   </div>
